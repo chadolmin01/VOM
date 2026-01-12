@@ -31,14 +31,23 @@ class SupabaseService {
     }
 
     try {
+      debugPrint('🔄 Initializing Supabase...');
+      debugPrint('📍 URL: $_supabaseUrl');
+      
       await Supabase.initialize(
         url: _supabaseUrl,
         anonKey: _supabaseAnonKey,
       );
       _client = Supabase.instance.client;
+      
+      // 연결 테스트
+      final testResponse = await _client!.from('card_contents').select('id').limit(1);
       debugPrint('✅ Supabase initialized successfully');
-    } catch (e) {
+      debugPrint('✅ Connection test passed: $testResponse');
+    } catch (e, stackTrace) {
       debugPrint('❌ Supabase initialization failed: $e');
+      debugPrint('📚 Stack trace: $stackTrace');
+      _client = null;
     }
   }
 
@@ -293,22 +302,26 @@ class SupabaseService {
     String? label,
   }) async {
     if (_client == null) {
-      debugPrint('⚠️ Supabase not configured');
+      debugPrint('⚠️ Supabase client is null. Initialization may have failed.');
       return false;
     }
 
     try {
-      await _client!.from('nfc_card_mappings').upsert({
+      debugPrint('🔄 Attempting to save NFC mapping: $nfcTagId -> $cardId');
+      
+      final response = await _client!.from('nfc_card_mappings').upsert({
         'nfc_tag_id': nfcTagId,
         'card_id': cardId,
         'label': label,
         'updated_at': DateTime.now().toIso8601String(),
-      }, onConflict: 'nfc_tag_id');
+      }, onConflict: 'nfc_tag_id').select();
 
-      debugPrint('✅ NFC mapping saved: $nfcTagId -> $cardId');
+      debugPrint('✅ NFC mapping saved successfully: $nfcTagId -> $cardId');
+      debugPrint('📦 Response: $response');
       return true;
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('❌ Failed to save NFC mapping: $e');
+      debugPrint('📚 Stack trace: $stackTrace');
       return false;
     }
   }
