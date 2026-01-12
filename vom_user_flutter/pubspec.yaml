@@ -1,0 +1,63 @@
+name: vom_user
+description: "V.O.M - 글을 모르는 엄마를 위한 음성 기반 육아 도우미"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.6.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # TTS (Text-to-Speech)
+  flutter_tts: ^4.2.0
+
+  # 오디오 녹음
+  record: ^6.1.0
+
+  # 오디오 재생
+  audioplayers: ^6.1.0
+
+  # 진동 피드백
+  vibration: ^2.0.0
+
+  # Supabase
+  supabase_flutter: ^2.8.0
+
+  # 상태 관리
+  provider: ^6.1.2
+
+  # 파일 경로
+  path_provider: ^2.1.4
+
+  # 권한 관리
+  permission_handler: ^11.3.1
+
+  # NFC 태그 읽기
+  flutter_nfc_kit: ^3.5.2
+
+  # QR/바코드 스캔
+  mobile_scanner: ^5.1.1
+
+  # HTTP 요청 (AI API 연동)
+  http: ^1.2.0
+
+  # Google Gemini AI
+  google_generative_ai: ^0.4.6
+
+  # 음성 인식 (STT)
+  speech_to_text: ^7.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/
