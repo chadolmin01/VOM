@@ -26,17 +26,44 @@ export default function DeviceTab() {
 
   useEffect(() => {
     loadData();
+    
+    // 실시간 구독: nfc_card_mappings 테이블 변경 감지
+    const channel = supabase
+      .channel('nfc_mappings_realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // INSERT, UPDATE, DELETE 모두 감지
+          schema: 'public',
+          table: 'nfc_card_mappings',
+        },
+        (payload) => {
+          console.log('NFC 매핑 변경 감지:', payload);
+          // 변경 사항이 있으면 데이터 다시 불러오기
+          loadData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const loadData = async () => {
     setIsLoading(true);
-    const [mappingsData, contentsData] = await Promise.all([
-      fetchMappings(),
-      fetchCardContents(),
-    ]);
-    setMappings(mappingsData);
-    setCardContents(contentsData);
-    setIsLoading(false);
+    try {
+      const [mappingsData, contentsData] = await Promise.all([
+        fetchMappings(),
+        fetchCardContents(),
+      ]);
+      setMappings(mappingsData);
+      setCardContents(contentsData);
+    } catch (error) {
+      console.error('데이터 로드 실패:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleCreate = async () => {

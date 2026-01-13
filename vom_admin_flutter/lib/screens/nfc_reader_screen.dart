@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_nfc_kit/flutter_nfc_kit.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../constants/app_colors.dart';
 import '../services/supabase_service.dart';
 import '../widgets/app_dialogs.dart';
@@ -37,12 +38,24 @@ class _NfcReaderScreenState extends State<NfcReaderScreen> {
   Future<void> _loadData() async {
     final mappings = await SupabaseService().fetchMappingsWithContent();
     final contents = await SupabaseService().fetchCardContents();
+    
     if (mounted) {
       setState(() {
         _mappings = mappings;
         _cardContents = contents;
         _isLoadingMappings = false;
       });
+      
+      // Supabase 연결 실패 시 알림
+      if (contents.isEmpty && mappings.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('⚠️ Supabase 연결을 확인할 수 없습니다. 인터넷 연결과 Supabase 설정을 확인하세요.'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 5),
+          ),
+        );
+      }
     }
   }
 
@@ -292,20 +305,257 @@ class _NfcReaderScreenState extends State<NfcReaderScreen> {
     });
   }
 
-  Future<void> _saveMapping(String tagId, Map<String, dynamic> content) async {
-    Navigator.pop(context);
-    AppDialogs.showLoading(context, message: '저장 중...');
+  // ============================================================
+  // 디버그 테스트용: 서버로 전송하는 공통 함수
+  // ============================================================
+  Future<Map<String, dynamic>> sendNfcDataToSupabase(
+    String nfcTagId,
+    Map<String, dynamic> content,
+  ) async {
+    debugPrint('🔄 [DEBUG] 서버로 전송 중: $nfcTagId -> ${content['name']}');
+    debugPrint('📍 [DEBUG] 에러 발생 위치: Supabase 전송 단계');
+    
+    try {
+      final success = await SupabaseService().saveNfcMappingV2(
+        nfcTagId: nfcTagId,
+        cardId: content['id'],
+        label: 'vom-${content['id']}-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}',
+      );
 
-    final success = await SupabaseService().saveNfcMappingV2(
-      nfcTagId: tagId,
-      cardId: content['id'],
-      label: 'vom-${content['id']}-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}',
-    );
+      if (success) {
+        debugPrint('✅ [DEBUG] 전송 성공: $nfcTagId');
+        return {
+          'success': true,
+          'message': '전송 성공',
+          'error': null,
+        };
+      } else {
+        debugPrint('❌ [DEBUG] 전송 실패: $nfcTagId (Supabase client is null)');
+        return {
+          'success': false,
+          'message': 'Supabase 클라이언트가 초기화되지 않았습니다',
+          'error': 'Supabase client is null',
+        };
+      }
+    } on PostgrestException catch (e, stackTrace) {
+      debugPrint('❌ [DEBUG] PostgrestException 발생');
+      debugPrint('❌ [DEBUG] HTTP 상태 코드: ${e.code}');
+      debugPrint('❌ [DEBUG] 에러 메시지: ${e.message}');
+      debugPrint('❌ [DEBUG] 에러 상세: ${e.details}');
+      debugPrint('❌ [DEBUG] 힌트: ${e.hint}');
+      debugPrint('📚 [DEBUG] 스택 트레이스: $stackTrace');
+      
+      // Supabase 에러 파싱
+      final errorInfo = SupabaseService().parseSupabaseError(e);
+      
+      return {
+        'success': false,
+        'message': errorInfo['userMessage'] ?? '전송 중 오류가 발생했습니다',
+        'error': errorInfo['originalError'] ?? e.toString(),
+        'errorType': errorInfo['errorType'],
+        'statusCode': errorInfo['statusCode'],
+        'errorCode': errorInfo['errorCode'],
+        'errorMessage': errorInfo['errorMessage'],
+        'stackTrace': stackTrace.toString(),
+      };
+    } catch (e, stackTrace) {
+      debugPrint('❌ [DEBUG] 에러 발생 위치: Supabase 전송 단계');
+      debugPrint('❌ [DEBUG] 에러 내용: $e');
+      debugPrint('📚 [DEBUG] 스택 트레이스: $stackTrace');
+      
+      // Supabase 에러 파싱
+      final errorInfo = SupabaseService().parseSupabaseError(e);
+      
+      return {
+        'success': false,
+        'message': errorInfo['userMessage'] ?? '전송 중 오류가 발생했습니다',
+        'error': errorInfo['originalError'] ?? e.toString(),
+        'errorType': errorInfo['errorType'],
+        'statusCode': errorInfo['statusCode'],
+        'errorCode': errorInfo['errorCode'],
+        'errorMessage': errorInfo['errorMessage'],
+        'stackTrace': stackTrace.toString(),
+      };
+    }
+  }
+
+  // ============================================================
+  // Supabase 연결 테스트
+  // ============================================================
+  Future<void> _testSupabaseConnection() async {
+    AppDialogs.showLoading(context, message: 'Supabase 연결 테스트 중...');
+
+    final testResult = await SupabaseService().testConnection();
 
     if (mounted) {
       AppDialogs.hideLoading(context);
 
-      if (success) {
+      final isSuccess = testResult['connectionTest'] == true;
+      final error = testResult['error'] as String?;
+      final details = testResult['details'] as Map<String, dynamic>;
+
+      await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(
+                isSuccess ? Icons.check_circle : Icons.error_outline,
+                color: isSuccess ? Colors.green : Colors.red,
+                size: 24,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  isSuccess ? '연결 성공!' : '연결 실패',
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('URL: ${testResult['url']}'),
+                const SizedBox(height: 8),
+                Text('설정 완료: ${testResult['isConfigured'] ? '✅' : '❌'}'),
+                Text('클라이언트 존재: ${testResult['clientExists'] ? '✅' : '❌'}'),
+                Text('연결 테스트: ${testResult['connectionTest'] ? '✅' : '❌'}'),
+                if (error != null) ...[
+                  const SizedBox(height: 12),
+                  const Text(
+                    '에러:',
+                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.red[50],
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: SelectableText(
+                      error,
+                      style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
+                    ),
+                  ),
+                ],
+                if (details['suggestion'] != null) ...[
+                  const SizedBox(height: 12),
+                  const Text(
+                    '💡 제안:',
+                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    details['suggestion'] as String,
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ],
+                if (testResult['connectionTest'] == true && details['testResponse'] != null) ...[
+                  const SizedBox(height: 12),
+                  const Text(
+                    '테스트 응답:',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: SelectableText(
+                      details['testResponse'].toString(),
+                      style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: testResult.toString()));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('테스트 결과가 클립보드에 복사되었습니다')),
+                );
+              },
+              child: const Text('결과 복사'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('확인'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  // ============================================================
+  // 디버그 테스트용: 테스트 버튼 핸들러
+  // ============================================================
+  Future<void> _testSendFakeNfcData() async {
+    if (_cardContents.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('콘텐츠를 먼저 불러와주세요'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // 첫 번째 콘텐츠를 테스트용으로 사용
+    final testContent = _cardContents.first;
+    final fakeTagId = 'TEST_TAG_${DateTime.now().millisecondsSinceEpoch}';
+
+    AppDialogs.showLoading(context, message: '테스트 전송 중...');
+
+    final result = await sendNfcDataToSupabase(fakeTagId, testContent);
+
+    if (mounted) {
+      AppDialogs.hideLoading(context);
+
+      if (result['success'] == true) {
+        _loadData();
+        await AppDialogs.showSuccess(
+          context,
+          title: '테스트 전송 성공!',
+          message: '${testContent['icon']} ${testContent['name']}에 연결되었습니다\n\n테스트 UID: $fakeTagId',
+          onConfirm: () {},
+        );
+      } else {
+        // 에러 상세 정보 표시
+        await _showErrorDetails(
+          title: '테스트 전송 실패',
+          errorMessage: result['message'] as String,
+          errorDetails: result['error'] as String?,
+          errorType: result['errorType'] as String?,
+          statusCode: result['statusCode'] as String?,
+          errorCode: result['errorCode'] as String?,
+          stackTrace: result['stackTrace'] as String?,
+        );
+      }
+    }
+  }
+
+  Future<void> _saveMapping(String tagId, Map<String, dynamic> content) async {
+    Navigator.pop(context);
+    AppDialogs.showLoading(context, message: '저장 중...');
+
+    // 공통 함수 사용
+    final result = await sendNfcDataToSupabase(tagId, content);
+
+    if (mounted) {
+      AppDialogs.hideLoading(context);
+
+      if (result['success'] == true) {
         _loadData();
         await AppDialogs.showSuccess(
           context,
@@ -314,14 +564,156 @@ class _NfcReaderScreenState extends State<NfcReaderScreen> {
           onConfirm: _startScanning,
         );
       } else {
-        await AppDialogs.showError(
-          context,
+        // 에러 상세 정보 표시
+        await _showErrorDetails(
           title: '저장 실패',
-          message: 'Supabase 연결을 확인해주세요',
+          errorMessage: result['message'] as String,
+          errorDetails: result['error'] as String?,
+          errorType: result['errorType'] as String?,
+          statusCode: result['statusCode'] as String?,
+          errorCode: result['errorCode'] as String?,
+          stackTrace: result['stackTrace'] as String?,
           onConfirm: _startScanning,
         );
       }
     }
+  }
+
+  // ============================================================
+  // 에러 상세 정보 표시 다이얼로그
+  // ============================================================
+  Future<void> _showErrorDetails({
+    required String title,
+    required String errorMessage,
+    String? errorDetails,
+    String? errorType,
+    String? statusCode,
+    String? errorCode,
+    String? stackTrace,
+    VoidCallback? onConfirm,
+  }) async {
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.red, size: 24),
+            const SizedBox(width: 8),
+            Expanded(child: Text(title)),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                errorMessage,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              // HTTP 상태 코드 및 에러 타입 표시
+              if (statusCode != null || errorType != null || errorCode != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: Colors.blue[200]!),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (statusCode != null && statusCode != 'Unknown')
+                        Text('HTTP 상태 코드: $statusCode', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      if (errorCode != null && errorCode != 'Unknown')
+                        Text('에러 코드: $errorCode', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      if (errorType != null)
+                        Text('에러 타입: $errorType', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+              ],
+              // 원본 에러 메시지 (터미널 에러 내용 그대로)
+              if (errorDetails != null && errorDetails.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                const Text(
+                  '📋 원본 에러 (터미널 출력):',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87),
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: SelectableText(
+                    errorDetails,
+                    style: const TextStyle(fontSize: 11, fontFamily: 'monospace', color: Colors.black87),
+                  ),
+                ),
+              ],
+              if (stackTrace != null) ...[
+                const SizedBox(height: 12),
+                const Text(
+                  '스택 트레이스:',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  width: double.infinity,
+                  height: 150,
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: SingleChildScrollView(
+                    child: SelectableText(
+                      stackTrace,
+                      style: const TextStyle(fontSize: 10, fontFamily: 'monospace'),
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
+              const Text(
+                '💡 터미널에서 "flutter logs" 명령어로 더 자세한 로그를 확인할 수 있습니다.',
+                style: TextStyle(fontSize: 11, color: Colors.blue),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              String fullError = '제목: $title\n\n에러 메시지: $errorMessage\n';
+              if (statusCode != null) fullError += 'HTTP 상태 코드: $statusCode\n';
+              if (errorCode != null) fullError += '에러 코드: $errorCode\n';
+              if (errorType != null) fullError += '에러 타입: $errorType\n';
+              if (errorDetails != null) fullError += '\n원본 에러:\n$errorDetails\n';
+              if (stackTrace != null) fullError += '\n스택 트레이스:\n$stackTrace';
+              
+              Clipboard.setData(ClipboardData(text: fullError));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('에러 정보가 클립보드에 복사되었습니다')),
+              );
+            },
+            child: const Text('에러 복사'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              onConfirm?.call();
+            },
+            child: const Text('확인'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _deleteMapping(Map<String, dynamic> item) async {
@@ -371,6 +763,18 @@ class _NfcReaderScreenState extends State<NfcReaderScreen> {
       appBar: AppBar(
         title: const Text('NFC 카드 등록'),
         actions: [
+          // Supabase 연결 테스트 버튼
+          IconButton(
+            onPressed: _testSupabaseConnection,
+            icon: const Icon(Icons.cloud),
+            tooltip: 'Supabase 연결 테스트',
+          ),
+          // 디버그 테스트 버튼
+          IconButton(
+            onPressed: _testSendFakeNfcData,
+            icon: const Icon(Icons.bug_report),
+            tooltip: '테스트 데이터 전송 (디버그)',
+          ),
           IconButton(
             onPressed: _loadData,
             icon: const Icon(Icons.refresh),
