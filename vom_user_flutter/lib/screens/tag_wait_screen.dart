@@ -1,13 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_nfc_kit/flutter_nfc_kit.dart';
 import '../constants/app_colors.dart';
 import '../constants/nfc_contents.dart';
-import '../services/nfc_intent_service.dart';
+import '../router/deep_link_handler.dart';
+import '../services/mission_repository.dart';
 import '../services/supabase_service.dart';
+import '../services/nfc_intent_service.dart';
+import '../services/onboarding_backend.dart';
 import '../services/tts_service.dart';
 import '../services/vibration_service.dart';
+import '../widgets/mission_error_bottom_sheet.dart';
 import 'learning_screen.dart';
 import 'scan_screen.dart';
+import 'onboarding/care_onboarding_screen.dart';
+
+// 온보딩과 동일한 색상 스타일
+const Color _kPrimaryOrange = Color(0xFFFF7E36); // 좀 더 생동감 있는 오렌지
+const Color _kBackgroundCream = Color(0xFFF8F9FA); // 토스식 밝은 그레이/화이트
+const Color _kCardWhite = Colors.white;
+const Color _kTextMain = Color(0xFF1A1C1E);
+const Color _kTextSub = Color(0xFF8B95A1);
 
 class TagWaitScreen extends StatefulWidget {
   const TagWaitScreen({super.key});
@@ -19,17 +32,32 @@ class TagWaitScreen extends StatefulWidget {
 class _TagWaitScreenState extends State<TagWaitScreen>
     with TickerProviderStateMixin {
   final TtsService _ttsService = TtsService();
+  final MissionRepository _missionRepository = MissionRepository();
+  final SupabaseService _supabaseService = SupabaseService();
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
   bool _isNfcAvailable = false;
   bool _isNfcListening = false;
+  String? _userName; // 사용자 이름 (온보딩에서 저장된 값)
+  int _attendanceCount = 0; // 출석 도장 개수 (임시, 나중에 서버에서 가져올 예정)
 
   @override
   void initState() {
     super.initState();
     _initAnimations();
+    _loadUserProfile();
     _checkNfcAvailability();
     _setupBackgroundNfcListener();
+  }
+
+  /// 사용자 프로필 불러오기 (이름 등)
+  Future<void> _loadUserProfile() async {
+    final profile = await onboardingBackend.loadProfile();
+    if (profile != null && profile.name != null) {
+      setState(() {
+        _userName = profile.name;
+      });
+    }
   }
 
   /// Android 백그라운드 NFC 리스너 설정
@@ -44,32 +72,7 @@ class _TagWaitScreenState extends State<TagWaitScreen>
   Future<void> _handleBackgroundNfcTag(String tagId) async {
     if (!mounted) return;
 
-    CardContent? matchedContent;
-
-    // 1. Supabase에서 UID로 콘텐츠 조회
-    try {
-      final dbContent = await SupabaseService().getContentByNfcTagId(tagId);
-      if (dbContent != null) {
-        matchedContent = CardContent.fromJson(dbContent);
-      }
-    } catch (e) {
-      debugPrint('Background NFC lookup failed: $e');
-    }
-
-    // 2. 폴백 콘텐츠 찾기
-    if (matchedContent == null) {
-      try {
-        final mapping = await SupabaseService().getCardMappingByNfcTagId(tagId);
-        if (mapping != null) {
-          final cardId = mapping['card_id'] as String?;
-          if (cardId != null) {
-            matchedContent = getFallbackContentById(cardId);
-          }
-        }
-      } catch (e) {
-        debugPrint('Background NFC mapping lookup failed: $e');
-      }
-    }
+    final matchedContent = await _missionRepository.loadByNfcTagId(tagId);
 
     if (!mounted) return;
 
@@ -78,7 +81,7 @@ class _TagWaitScreenState extends State<TagWaitScreen>
       _goToLearningDirect(matchedContent);
     } else {
       await VibrationService.error();
-      _showNotFoundDialog(tagId);
+      await _showNotFoundDialog(tagId);
     }
   }
 
@@ -112,6 +115,24 @@ class _TagWaitScreenState extends State<TagWaitScreen>
     }
   }
 
+  /// 개발용: Supabase 로그아웃 + 온보딩 처음부터 다시 시작
+  Future<void> _devResetOnboarding() async {
+    try {
+      await _supabaseService.signOut();
+      if (!mounted) return;
+
+      // 온보딩 화면부터 다시 시작
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) => const CareOnboardingScreen(),
+        ),
+        (route) => false,
+      );
+    } catch (e) {
+      debugPrint('❌ Dev reset onboarding error: $e');
+    }
+  }
+
   Future<void> _startNfcPolling() async {
     if (!_isNfcAvailable || _isNfcListening) return;
 
@@ -138,24 +159,7 @@ class _TagWaitScreenState extends State<TagWaitScreen>
 
   Future<void> _handleNfcTag(NFCTag tag) async {
     try {
-      CardContent? matchedContent;
-
-      // 1. Supabase에서 UID로 콘텐츠 조회 (v2 방식)
-      final dbContent = await SupabaseService().getContentByNfcTagId(tag.id);
-      if (dbContent != null) {
-        matchedContent = CardContent.fromJson(dbContent);
-      }
-
-      // 2. DB에 없으면 기존 매핑에서 card_id로 폴백 콘텐츠 찾기
-      if (matchedContent == null) {
-        final mapping = await SupabaseService().getCardMappingByNfcTagId(tag.id);
-        if (mapping != null) {
-          final cardId = mapping['card_id'] as String?;
-          if (cardId != null) {
-            matchedContent = getFallbackContentById(cardId);
-          }
-        }
-      }
+      final matchedContent = await _missionRepository.loadByNfcTagId(tag.id);
 
       await FlutterNfcKit.finish();
 
@@ -163,10 +167,10 @@ class _TagWaitScreenState extends State<TagWaitScreen>
         setState(() => _isNfcListening = false);
         if (matchedContent != null) {
           await VibrationService.success();
-          _goToLearningDirect(matchedContent);  // 바로 학습 화면으로 전환
+          _goToLearningDirect(matchedContent); // 바로 학습 화면으로 전환
         } else {
           await VibrationService.error();
-          _showNotFoundDialog(tag.id);
+          await _showNotFoundDialog(tag.id);
         }
       }
     } catch (e) {
@@ -180,69 +184,21 @@ class _TagWaitScreenState extends State<TagWaitScreen>
     }
   }
 
-  void _showNotFoundDialog(String tagId) {
-    _ttsService.speak('이 카드가 아직 등록되지 않았어요');
+  Future<void> _showNotFoundDialog(String tagId) async {
+    await _ttsService.speak('이 카드가 아직 등록되지 않았어요');
 
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isDismissible: true,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('🤔', style: TextStyle(fontSize: 48)),
-            const SizedBox(height: 16),
-            const Text(
-              '등록되지 않은 카드예요',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'UID: $tagId',
-              style: TextStyle(
-                fontSize: 12,
-                color: AppColors.textTertiary,
-                fontFamily: 'monospace',
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              '관리자에게 카드 등록을 요청하세요',
-              style: TextStyle(color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _startNfcPolling();
-                },
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: const Text('다시 태그하기'),
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
-        ),
-      ),
-    ).whenComplete(() {
-      if (mounted && !_isNfcListening) {
-        _startNfcPolling();
-      }
-    });
+    await showMissionNotFoundBottomSheet(
+      context,
+      title: '등록되지 않은 카드예요',
+      message: '관리자에게 카드 등록을 요청해주세요.',
+      idLabel: 'UID',
+      idValue: tagId,
+      helpText: 'NFC 카드를 다시 태그해 주세요.',
+    );
+
+    if (mounted && !_isNfcListening) {
+      _startNfcPolling();
+    }
   }
 
   void _showFoundDialog(CardContent card) {
@@ -525,228 +481,336 @@ class _TagWaitScreenState extends State<TagWaitScreen>
     super.dispose();
   }
 
+  /// 디지털 학생증 카드 (상단)
+  Widget _buildStudentCard() {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: _kCardWhite,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          )
+        ],
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 30,
+            backgroundColor: _kPrimaryOrange.withOpacity(0.1),
+            child: const Icon(Icons.person, color: _kPrimaryOrange, size: 30),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _userName ?? "학생",
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: _kTextMain,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  "봄 학교 학생",
+                  style: TextStyle(
+                    color: _kTextSub,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.qr_code_2, color: _kTextSub, size: 32),
+        ],
+      ),
+    );
+  }
+
+  /// 오늘의 수업 카드 (넷플릭스 스타일)
+  Widget _buildTodayClassCard() {
+    return GestureDetector(
+      onTap: () {
+        if (_isNfcAvailable) {
+          _showCardSelectDialog();
+        } else {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ScanScreen()),
+          ).then((_) {
+            if (mounted) _startNfcPolling();
+          });
+        }
+      },
+      child: Container(
+        width: double.infinity,
+        height: 200,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              _kPrimaryOrange,
+              _kPrimaryOrange.withOpacity(0.8),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: _kPrimaryOrange.withOpacity(0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.school_rounded,
+                size: 48,
+                color: Colors.white,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                '오늘의 수업',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _isNfcAvailable
+                    ? '카드를 태그하거나 터치하세요'
+                    : 'QR코드를 스캔하거나 터치하세요',
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.white70,
+                ),
+              ),
+              if (_isNfcAvailable && _isNfcListening) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.nfc, size: 16, color: Colors.white),
+                      SizedBox(width: 6),
+                      Text(
+                        'NFC 대기 중...',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 출석 도장판 섹션
+  Widget _buildAttendanceStamp() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: _kCardWhite,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '출석 도장판',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: _kTextMain,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: List.generate(7, (index) {
+              final isStamped = index < _attendanceCount;
+              return GestureDetector(
+                onTap: () async {
+                  if (!isStamped && index == _attendanceCount) {
+                    setState(() {
+                      _attendanceCount++;
+                    });
+                    await VibrationService.success();
+                    // 도장 찍는 애니메이션 효과 (간단한 스케일)
+                  }
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: isStamped
+                        ? _kPrimaryOrange.withOpacity(0.2)
+                        : Colors.grey.shade100,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isStamped ? _kPrimaryOrange : Colors.grey.shade300,
+                      width: 2,
+                    ),
+                  ),
+                  child: Center(
+                    child: isStamped
+                        ? const Icon(
+                            Icons.check_circle,
+                            color: _kPrimaryOrange,
+                            size: 24,
+                          )
+                        : const Icon(
+                            Icons.circle_outlined,
+                            color: Colors.grey,
+                            size: 24,
+                          ),
+                  ),
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '오늘 $_attendanceCount/7 도장',
+            style: const TextStyle(
+              fontSize: 14,
+              color: _kTextSub,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 주황색 큰 버튼 빌더 (온보딩과 동일한 스타일)
+  Widget _buildPrimaryButton(String label, {VoidCallback? onPressed}) {
+    return SizedBox(
+      width: double.infinity,
+      height: 64,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _kPrimaryOrange,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          elevation: 0,
+        ),
+        onPressed: onPressed,
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: _kBackgroundCream, // 온보딩과 동일한 크림 배경
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          IconButton(
+            onPressed: () {
+              if (_isNfcAvailable) {
+                _ttsService.speak("카드를 태그하거나 QR코드를 스캔해주세요");
+              } else {
+                _ttsService.speak("QR코드를 스캔하거나 카드를 선택해주세요");
+              }
+            },
+            icon: const Icon(Icons.volume_up_rounded),
+            color: Colors.black54,
+          ),
+          if (kDebugMode)
+            IconButton(
+              tooltip: '개발용: 온보딩 초기화',
+              onPressed: _devResetOnboarding,
+              icon: const Icon(Icons.logout_rounded),
+              color: Colors.black54,
+            ),
+        ],
+      ),
       body: SafeArea(
-        child: Column(
-          children: [
-            // 헤더
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      const Text(
-                        'V.O.M',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                      if (_isNfcAvailable && _isNfcListening) ...[
-                        const SizedBox(width: 12),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppColors.success.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 6,
-                                height: 6,
-                                decoration: const BoxDecoration(
-                                  color: AppColors.success,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              const Text(
-                                'NFC',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.success,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  IconButton(
-                    onPressed: () {
-                      if (_isNfcAvailable) {
-                        _ttsService.speak("NFC 카드를 태그하거나 QR코드를 스캔해주세요");
-                      } else {
-                        _ttsService.speak("QR코드를 스캔하거나 카드를 선택해주세요");
-                      }
-                    },
-                    icon: const Icon(Icons.volume_up_rounded),
-                    color: AppColors.textSecondary,
-                  ),
-                ],
-              ),
-            ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 16),
+              // 상단: 디지털 학생증 카드
+              _buildStudentCard(),
+              const SizedBox(height: 24),
 
-            const Spacer(),
+              // 중간: 오늘의 수업 (넷플릭스 카드 스타일)
+              _buildTodayClassCard(),
+              const SizedBox(height: 24),
 
-            // 메인 텍스트
-            const Text(
-              '어떤 도움이\n필요하신가요?',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                height: 1.3,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              _isNfcAvailable
-                  ? 'NFC 카드를 태그하면 바로 알려드릴게요'
-                  : 'QR코드를 스캔하거나 카드를 선택하세요',
-              style: const TextStyle(
-                fontSize: 16,
-                color: AppColors.textSecondary,
-              ),
-            ),
+              // 하단: 출석 도장판
+              _buildAttendanceStamp(),
+              const SizedBox(height: 24),
 
-            const Spacer(),
-
-            // 메인 액션 버튼 (NFC & QR)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                children: [
-                  // NFC 태그 버튼
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: _showCardSelectDialog,
-                      child: ScaleTransition(
-                        scale: _pulseAnimation,
-                        child: Container(
-                          height: 160,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(28),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.primary.withOpacity(0.3),
-                                blurRadius: 20,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  _isNfcAvailable ? Icons.nfc_rounded : Icons.touch_app_rounded,
-                                  size: 32,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                _isNfcAvailable ? 'NFC 태그' : '카드 선택',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              if (_isNfcAvailable && _isNfcListening)
-                                const Padding(
-                                  padding: EdgeInsets.only(top: 4),
-                                  child: Text(
-                                    '대기 중...',
-                                    style: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  // QR 스캔 버튼
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const ScanScreen()),
-                        ).then((_) {
-                          if (mounted) _startNfcPolling();
-                        });
-                      },
-                      child: Container(
-                        height: 160,
-                        decoration: BoxDecoration(
-                          color: AppColors.white,
-                          borderRadius: BorderRadius.circular(28),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: AppColors.cardShadow,
-                              blurRadius: 20,
-                              offset: Offset(0, 8),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: const BoxDecoration(
-                                color: AppColors.background,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.qr_code_scanner_rounded,
-                                size: 32,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'QR 스캔',
-                              style: TextStyle(
-                                color: AppColors.textPrimary,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+              // 학습 시작 버튼
+              _buildPrimaryButton(
+                '학습 시작하기',
+                onPressed: () {
+                  if (_isNfcAvailable) {
+                    _showCardSelectDialog();
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ScanScreen()),
+                    ).then((_) {
+                      if (mounted) _startNfcPolling();
+                    });
+                  }
+                },
               ),
-            ),
-            const SizedBox(height: 48),
-          ],
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );

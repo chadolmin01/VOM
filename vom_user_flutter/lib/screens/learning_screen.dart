@@ -6,6 +6,7 @@ import '../services/tts_service.dart';
 import '../services/audio_service.dart';
 import '../services/vibration_service.dart';
 import '../services/supabase_service.dart';
+import '../services/learning_session_tracker.dart';
 import 'tag_wait_screen.dart';
 import 'voice_chat_screen.dart';
 
@@ -24,6 +25,7 @@ class _LearningScreenState extends State<LearningScreen>
     with TickerProviderStateMixin {
   final TtsService _tts = TtsService();
   final AudioService _audio = AudioService();
+  final LearningSessionTracker _sessionTracker = LearningSessionTracker();
 
   late CardContent _card;
   LearningStage _stage = LearningStage.loading;
@@ -41,6 +43,9 @@ class _LearningScreenState extends State<LearningScreen>
   void initState() {
     super.initState();
     _card = widget.card;
+
+    // 학습 화면 진입 시점을 태그 시각으로 기록
+    _sessionTracker.recordTagged();
 
     _pulseController = AnimationController(
       vsync: this,
@@ -136,6 +141,9 @@ class _LearningScreenState extends State<LearningScreen>
   }
 
   Future<void> _sendLearningLog() async {
+    // 완료 시각 기록
+    _sessionTracker.recordCompleted();
+
     // 데모용 발화 텍스트 (실제로는 STT 결과 사용)
     const demoSpeechTexts = [
       '버튼을 누르고 겨드랑이에 넣어요',
@@ -148,13 +156,23 @@ class _LearningScreenState extends State<LearningScreen>
 
     // 위험 키워드 감지
     final riskKeywordList = detectRiskKeywords(speechText);
+    _sessionTracker.addRiskKeywords(riskKeywordList);
+
+    // 위기 지수 계산
+    final riskScore = _sessionTracker.calculateRiskScore();
 
     await SupabaseService().sendLearningLog(
       cardName: _card.name,
       cardIcon: _card.icon,
+      cardId: _card.id,
       speechText: speechText,
       quizCorrect: _isQuizCorrect,
       riskKeywords: riskKeywordList.isNotEmpty ? riskKeywordList : null,
+      reactionTime: _sessionTracker.reactionTime,
+      retryCount: _sessionTracker.retryCount,
+      riskScore: riskScore,
+      taggedAt: _sessionTracker.taggedAt,
+      completedAt: _sessionTracker.completedAt,
     );
   }
 

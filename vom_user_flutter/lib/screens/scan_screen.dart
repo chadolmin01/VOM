@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../constants/app_colors.dart';
 import '../constants/nfc_contents.dart';
+import '../services/mission_repository.dart';
 import '../services/tts_service.dart';
 import '../services/vibration_service.dart';
-import '../services/supabase_service.dart';
+import '../widgets/mission_error_bottom_sheet.dart';
 import 'learning_screen.dart';
 
 class ScanScreen extends StatefulWidget {
@@ -16,6 +17,7 @@ class ScanScreen extends StatefulWidget {
 
 class _ScanScreenState extends State<ScanScreen> {
   final TtsService _tts = TtsService();
+  final MissionRepository _missionRepository = MissionRepository();
   MobileScannerController? _scannerController;
   bool _isProcessing = false;
 
@@ -47,33 +49,8 @@ class _ScanScreenState extends State<ScanScreen> {
 
     setState(() => _isProcessing = true);
 
-    // QR 코드로 콘텐츠 찾기 (v2 - UID 매핑 방식)
-    CardContent? matchedContent;
-
-    // 1. Supabase에서 QR 코드로 콘텐츠 조회
-    try {
-      final dbContent = await SupabaseService().getContentByQrCode(code);
-      if (dbContent != null) {
-        matchedContent = CardContent.fromJson(dbContent);
-      }
-    } catch (e) {
-      debugPrint('Supabase QR lookup failed: $e');
-    }
-
-    // 2. DB에 없으면 기존 매핑에서 card_id로 폴백 콘텐츠 찾기
-    if (matchedContent == null) {
-      try {
-        final mapping = await SupabaseService().getCardMappingByQrCode(code);
-        if (mapping != null) {
-          final cardId = mapping['card_id'] as String?;
-          if (cardId != null) {
-            matchedContent = getFallbackContentById(cardId);
-          }
-        }
-      } catch (e) {
-        debugPrint('Supabase QR mapping lookup failed: $e');
-      }
-    }
+    // QR 코드로 콘텐츠 찾기 (v2 - UID 매핑 방식 → Repository 사용)
+    final matchedContent = await _missionRepository.loadByQrCode(code);
 
     if (!mounted) return;
 
@@ -89,61 +66,15 @@ class _ScanScreenState extends State<ScanScreen> {
   void _showNotFoundDialog(String qrCode) {
     _tts.speak('이 QR코드가 아직 등록되지 않았어요');
 
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isDismissible: true,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('🤔', style: TextStyle(fontSize: 48)),
-            const SizedBox(height: 16),
-            const Text(
-              '등록되지 않은 QR코드예요',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'QR: ${qrCode.length > 30 ? '${qrCode.substring(0, 30)}...' : qrCode}',
-              style: TextStyle(
-                fontSize: 12,
-                color: AppColors.textTertiary,
-                fontFamily: 'monospace',
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              '관리자에게 QR코드 등록을 요청하세요',
-              style: TextStyle(color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  setState(() => _isProcessing = false);
-                },
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: const Text('다시 스캔하기'),
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
-        ),
-      ),
+    showMissionNotFoundBottomSheet(
+      context,
+      title: '등록되지 않은 QR코드예요',
+      message: '관리자에게 QR코드 등록을 요청해주세요.',
+      idLabel: 'QR',
+      idValue: qrCode.length > 30
+          ? '${qrCode.substring(0, 30)}...'
+          : qrCode,
+      helpText: 'QR코드를 다시 인식해 주세요.',
     ).whenComplete(() {
       if (mounted) {
         setState(() => _isProcessing = false);

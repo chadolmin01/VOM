@@ -56,7 +56,10 @@ class SttService {
       },
       localeId: localeId,
       listenMode: ListenMode.confirmation,
-      cancelOnError: true,
+      // 너무 빨리 끊기지 않도록 한국어 환경 기준으로 약간 여유를 둠
+      listenFor: const Duration(seconds: 8),
+      pauseFor: const Duration(seconds: 3),
+      cancelOnError: false,
       partialResults: true,
     );
   }
