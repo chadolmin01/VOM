@@ -4,18 +4,18 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'constants/app_colors.dart';
-import 'router/deep_link_handler.dart';
-import 'screens/onboarding/care_onboarding_screen.dart';
-import 'screens/main_tab_screen.dart';
-import 'screens/learning_screen.dart';
-import 'services/app_entry_service.dart';
-import 'services/tts_service.dart';
-import 'services/vibration_service.dart';
-import 'services/supabase_service.dart';
-import 'services/mission_repository.dart';
-import 'services/nfc_intent_service.dart';
-import 'services/onboarding_backend.dart';
+import 'core/constants/app_colors.dart';
+import 'core/utils/deep_link_handler.dart';
+import 'features/onboarding/screens/care_onboarding_screen.dart';
+import 'features/home/screens/main_tab_screen.dart';
+import 'features/classroom/screens/learning_screen.dart';
+import 'data/services/app_entry_service.dart';
+import 'data/services/tts_service.dart';
+import 'data/services/vibration_service.dart';
+import 'data/services/supabase_service.dart';
+import 'data/services/mission_repository.dart';
+import 'data/services/nfc_service.dart';
+import 'data/services/onboarding_backend.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
