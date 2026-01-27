@@ -50,6 +50,7 @@ dependencies:
 
   # 음성 인식 (STT)
   speech_to_text: ^7.0.0
+  app_links: ^6.4.1
 
 dev_dependencies:
   flutter_test:
@@ -60,4 +61,6 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/
+    - assets/images/
+    - assets/rives/
+    - assets/fonts/

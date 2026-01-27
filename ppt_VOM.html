@@ -1,0 +1,2083 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V.O.M IR Pitch Deck</title>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.8/dist/web/static/pretendard.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* 1. Design System (Toss Identity) */
+        :root {
+            --toss-blue: #3182F6;
+            --toss-blue-light: #E8F3FF;
+            --toss-red: #F04452;
+            --toss-red-light: #FDE8EA;
+            --toss-green: #33C759;
+            --toss-green-light: #E4F9E8;
+            --grey-900: #191F28;
+            --grey-800: #333D4B;
+            --grey-700: #4E5968;
+            --grey-600: #6B7684;
+            --grey-500: #8B95A1;
+            --grey-400: #B0B8C1;
+            --grey-300: #D1D6DB;
+            --grey-200: #E5E8EB;
+            --grey-100: #F2F4F6;
+            --grey-0: #FFFFFF;
+            --shadow-1: 0 4px 20px rgba(0, 0, 0, 0.04);
+            --shadow-2: 0 8px 30px rgba(0, 0, 0, 0.08);
+            --radius-L: 32px;
+            --radius-M: 24px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Pretendard', -apple-system, sans-serif;
+            background-color: var(--grey-200);
+            color: var(--grey-900);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 60px 0;
+            gap: 80px;
+            /* 발표 모드용 스크롤 숨김 */
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        body::-webkit-scrollbar { display: none; }
+
+        /* 2. Slide Layout */
+        .slide {
+            width: 1280px;
+            height: 720px;
+            background-color: var(--grey-0);
+            border-radius: var(--radius-L);
+            padding: 60px 80px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            opacity: 0; 
+            transform: translateY(20px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+            flex-shrink: 0; /* 슬라이드 크기 고정 */
+        }
+
+        .slide.active { opacity: 1; transform: translateY(0); }
+
+        /* 3. Typography */
+        h1 { font-size: 60px; font-weight: 800; line-height: 1.3; letter-spacing: -0.02em; color: var(--grey-900); margin-bottom: 24px; }
+        h2 { font-size: 44px; font-weight: 700; line-height: 1.4; letter-spacing: -0.01em; color: var(--grey-900); margin-bottom: 32px; }
+        h3 { font-size: 26px; font-weight: 700; line-height: 1.4; color: var(--grey-900); margin-bottom: 8px; }
+        p.desc { font-size: 22px; color: var(--grey-600); line-height: 1.6; font-weight: 500; word-break: keep-all; }
+        .accent { color: var(--toss-blue); }
+        .tag { display: inline-flex; align-items: center; padding: 8px 16px; background: var(--toss-blue-light); color: var(--toss-blue); border-radius: 100px; font-size: 15px; font-weight: 700; margin-bottom: 20px; }
+
+        /* 4. Animations */
+        .reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+        .slide.active .reveal { opacity: 1; transform: translateY(0); }
+        
+        .d-1 { transition-delay: 0.1s; }
+        .d-2 { transition-delay: 0.2s; }
+        .d-3 { transition-delay: 0.3s; }
+        .d-4 { transition-delay: 0.4s; }
+
+        .pop-in { opacity: 0; transform: scale(0.9); transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .slide.active .pop-in { opacity: 1; transform: scale(1); }
+
+        .grow-up { height: 0 !important; transition: height 1.5s cubic-bezier(0.16, 1, 0.3, 1); }
+        .slide.active .grow-up { height: var(--target-height) !important; }
+
+        .floating { animation: float 3s ease-in-out infinite; }
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-8px); } 100% { transform: translateY(0px); } }
+        
+        .pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(240, 68, 82, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(240, 68, 82, 0); } 100% { box-shadow: 0 0 0 0 rgba(240, 68, 82, 0); } }
+
+        /* 5. Components */
+        .toss-card { background: white; border-radius: var(--radius-M); padding: 32px; box-shadow: var(--shadow-1); border: 1px solid transparent; transition: all 0.3s ease; }
+        .toss-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-2); }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; height: 100%; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; width: 100%; }
+        .step-container { display: flex; gap: 24px; width: 100%; margin-top: 20px; }
+        .step-box { flex: 1; background: var(--grey-0); border-radius: var(--radius-M); padding: 32px; box-shadow: var(--shadow-1); border: 1px solid var(--grey-200); display: flex; flex-direction: column; justify-content: space-between; height: 340px; }
+        .step-arrow { display: flex; align-items: center; color: var(--grey-300); font-size: 20px; }
+    </style>
+</head>
+<body>
+
+  
+    
+
+
+ <div class="slide" style="background: white; overflow: hidden; position: relative;">
+    
+    <div class="aurora-bg"></div>
+    <div style="position: absolute; inset: 0; background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.9) 40%, rgba(255,255,255,0.5) 100%); z-index: 1;"></div>
+
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 700px; height: 700px; z-index: 1; opacity: 0.4;">
+        <svg width="700" height="700" viewBox="0 0 700 700">
+            <circle cx="350" cy="350" r="180" fill="none" stroke="#E5E8EB" stroke-width="1.5" />
+            <circle cx="350" cy="350" r="260" fill="none" stroke="#3182F6" stroke-width="1" stroke-dasharray="8 8" class="spin-slow" opacity="0.3"/>
+            <circle cx="350" cy="350" r="320" fill="none" stroke="#3182F6" stroke-width="1.5" stroke-dasharray="100 250" stroke-linecap="round" class="spin-fast" opacity="0.6"/>
+        </svg>
+    </div>
+
+    <div style="position: relative; z-index: 3; height: 100%; width: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+        
+        <div class="reveal d-1" style="margin-bottom: 40px;"> <div style="display: inline-block; padding: 8px 20px; border-radius: 30px; background: rgba(255, 255, 255, 0.95); border: 1px solid rgba(49, 130, 246, 0.2); box-shadow: 0 4px 12px rgba(0,0,0,0.05); color: #3182F6; font-size: 15px; font-weight: 800; letter-spacing: 0.5px;">
+                Hult Prize 2026 On-Campus
+            </div>
+        </div>
+
+        <h1 class="reveal d-2" style="font-size: 76px; font-weight: 900; line-height: 1.1; color: #191F28; margin-bottom: 32px; letter-spacing: -2.5px; word-break: keep-all; text-align: center;">
+            들리는 육아,<br>
+            <span style="color: #3182F6;">말하는 데이터</span>
+        </h1>
+
+        <p class="reveal d-3" style="font-size: 21px; color: #4E5968; line-height: 1.6; max-width: 640px; margin-bottom: 60px; font-weight: 500; text-align: center; word-break: keep-all;">
+            가장 쉬운 기술로 인지와 소통의 장벽을 허물고<br>
+            가장 희소한 데이터로 AI의 미래를 엽니다
+        </p>
+
+        <div class="reveal d-4" style="display: flex; gap: 40px; align-items: center; background: rgba(255,255,255,0.7); padding: 16px 36px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.9); backdrop-filter: blur(10px); box-shadow: 0 4px 20px rgba(0,0,0,0.03);">
+            <div style="text-align: right;">
+                <span style="font-size: 12px; color: #8B95A1; font-weight: 700; letter-spacing: 1px;">TEAM</span>
+                <div style="font-size: 18px; font-weight: 800; color: #333D4B; margin-top: 2px;">V.O.M</div>
+            </div>
+            
+            <div style="width: 1px; height: 32px; background: #E5E8EB;"></div>
+            
+            <div style="text-align: left;">
+                <span style="font-size: 12px; color: #8B95A1; font-weight: 700; letter-spacing: 1px;">PRESENTER</span>
+                <div style="font-size: 18px; font-weight: 800; color: #333D4B; margin-top: 2px;">이성민</div>
+            </div>
+        </div>
+
+    </div>
+
+    <style>
+        /* 오로라 배경 (조금 더 은은하게 조정) */
+        .aurora-bg {
+            position: absolute; width: 140%; height: 140%; top: -20%; left: -20%;
+            background: radial-gradient(circle at 30% 30%, rgba(49, 130, 246, 0.12), transparent 50%),
+                        radial-gradient(circle at 70% 70%, rgba(51, 199, 89, 0.1), transparent 50%);
+            animation: aurora-flow 15s infinite alternate ease-in-out;
+            z-index: 0;
+            filter: blur(50px);
+        }
+
+        /* 링 회전 애니메이션 */
+        .spin-slow { animation: spin 50s linear infinite; transform-origin: 350px 350px; }
+        .spin-fast { animation: spin 25s linear infinite; transform-origin: 350px 350px; }
+
+        @keyframes aurora-flow {
+            0% { transform: translate(-20px, -20px) scale(1); }
+            100% { transform: translate(20px, 20px) scale(1.05); }
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
+</div>
+
+
+<div class="slide" style="background: white; padding: 0 100px; display: flex; flex-direction: column; justify-content: center;">
+    
+    <div style="max-width: 1100px; width: 100%; margin: 0 auto;">
+
+        <div style="text-align: center; margin-bottom: 50px;">
+            <div class="tag reveal" style="background: var(--grey-100); color: var(--grey-700); margin-bottom: 20px;">THE HIDDEN NEIGHBOR</div>
+            <h2 class="reveal d-1" style="font-size: 44px; font-weight: 800; color: var(--grey-900); line-height: 1.3; margin: 0;">
+                지하철 한 칸, <span style="color: var(--toss-blue);">50명 중 7명</span>을<br>
+                스치며 지나치지 않으셨나요?
+            </h2>
+            <p class="reveal d-1" style="font-size: 18px; color: var(--grey-500); margin-top: 16px; margin-bottom: 0;">
+                평범해 보이지만, 가장 <strong>외로운 복지 사각지대</strong>에 놓인 사람들입니다.
+            </p>
+        </div>
+
+        <div class="grid-2" style="gap: 80px; align-items: start;">
+            
+            <div class="reveal d-2" style="background: #F9FAFB; border-radius: 24px; padding: 32px; border: 1px solid var(--grey-100);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <div style="font-size: 14px; font-weight: 700; color: var(--grey-600);">
+                        <i class="fa-solid fa-train-subway" style="margin-right: 8px;"></i> 지하철 1칸 (50명)
+                    </div>
+                    <div style="font-size: 12px; color: var(--toss-blue); font-weight: 700; background: #E8F3FF; padding: 6px 10px; border-radius: 6px;">
+                        13.6% (7명)
+                    </div>
+                </div>
+
+                <div class="people-grid staggered-grid">
+                    <i class="fa-solid fa-user person-icon highlight"></i>
+                    <i class="fa-solid fa-user person-icon highlight"></i>
+                    <i class="fa-solid fa-user person-icon highlight"></i>
+                    <i class="fa-solid fa-user person-icon highlight"></i>
+                    <i class="fa-solid fa-user person-icon highlight"></i>
+                    <i class="fa-solid fa-user person-icon highlight"></i>
+                    <i class="fa-solid fa-user person-icon highlight"></i>
+                    <i class="fa-solid fa-user person-icon"></i><i class="fa-solid fa-user person-icon"></i><i class="fa-solid fa-user person-icon"></i>
+                    <i class="fa-solid fa-user person-icon"></i><i class="fa-solid fa-user person-icon"></i><i class="fa-solid fa-user person-icon"></i>
+                    <i class="fa-solid fa-user person-icon"></i><i class="fa-solid fa-user person-icon"></i><i class="fa-solid fa-user person-icon"></i>
+                    <i class="fa-solid fa-user person-icon"></i><i class="fa-solid fa-user person-icon"></i><i class="fa-solid fa-user person-icon"></i>
+                    <i class="fa-solid fa-user person-icon"></i><i class="fa-solid fa-user person-icon"></i><i class="fa-solid fa-user person-icon"></i>
+                    <i class="fa-solid fa-user person-icon"></i><i class="fa-solid fa-user person-icon"></i><i class="fa-solid fa-user person-icon"></i>
+                    <i class="fa-solid fa-user person-icon"></i><i class="fa-solid fa-user person-icon"></i><i class="fa-solid fa-user person-icon"></i>
+                    <i class="fa-solid fa-user person-icon"></i><i class="fa-solid fa-user person-icon"></i><i class="fa-solid fa-user person-icon"></i>
+                    <i class="fa-solid fa-user person-icon"></i><i class="fa-solid fa-user person-icon"></i><i class="fa-solid fa-user person-icon"></i>
+                    <i class="fa-solid fa-user person-icon"></i><i class="fa-solid fa-user person-icon"></i><i class="fa-solid fa-user person-icon"></i>
+                    <i class="fa-solid fa-user person-icon"></i><i class="fa-solid fa-user person-icon"></i><i class="fa-solid fa-user person-icon"></i>
+                    <i class="fa-solid fa-user person-icon"></i><i class="fa-solid fa-user person-icon"></i><i class="fa-solid fa-user person-icon"></i>
+                    <i class="fa-solid fa-user person-icon"></i><i class="fa-solid fa-user person-icon"></i><i class="fa-solid fa-user person-icon"></i>
+                    <i class="fa-solid fa-user person-icon"></i>
+                </div>
+
+                <div style="margin-top: 24px; text-align: center;">
+                    <p style="font-size: 14px; color: var(--grey-600); line-height: 1.5; margin: 0;">
+                        "장애가 아니기에 <strong>도움</strong>을 받지 못하고,<br>
+                        비장애인이기에 <strong>경쟁</strong>을 강요받습니다."
+                    </p>
+                </div>
+            </div>
+
+            <div class="reveal d-3" style="padding-top: 10px;"> 
+                
+                <div style="font-size: 20px; font-weight: 800; color: var(--grey-900); margin-bottom: 32px;">
+                    등록되지 않은 <span style="border-bottom: 3px solid rgba(49, 130, 246, 0.3);">압도적 다수</span>
+                </div>
+
+                <div style="margin-bottom: 32px; position: relative; opacity: 0.6;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="font-size: 14px; font-weight: 700; color: var(--grey-600);">등록 지적 장애인</span>
+                        <span style="font-size: 14px; font-weight: 700; color: var(--grey-600);">약 22만 명 (0.4%)</span>
+                    </div>
+                    <div style="width: 100%; height: 36px; background: #F2F4F6; border-radius: 8px; overflow: hidden;">
+                        <div class="bar-fill-small" style="height: 100%; background: var(--grey-500); border-radius: 8px; width: 0%;"></div>
+                    </div>
+                    <div style="font-size: 12px; color: var(--grey-400); margin-top: 6px;">
+                        <i class="fa-solid fa-check"></i> 정부 지원 시스템 존재
+                    </div>
+                </div>
+
+                <div style="position: relative;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px; align-items: flex-end;">
+                        <span style="font-size: 18px; font-weight: 800; color: var(--toss-blue);">경계선 지능인 (IQ 71~84)</span>
+                        <span style="font-size: 22px; font-weight: 800; color: var(--toss-blue);">약 700만 명 (13.6%)</span>
+                    </div>
+                    
+                    <div style="width: 100%; height: 56px; background: #E8F3FF; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(49, 130, 246, 0.2);">
+                        <div class="bar-fill-large" style="height: 100%; background: var(--toss-blue); border-radius: 8px; width: 0%;"></div>
+                    </div>
+                    
+                    <div class="pop-in d-4" style="position: absolute; right: 0; top: -42px; background: var(--toss-red); color: white; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 700; box-shadow: 0 4px 10px rgba(240, 68, 82, 0.3);">
+                        30배 규모의 사각지대
+                    </div>
+
+                    <div style="font-size: 13px; color: var(--toss-red); margin-top: 10px; font-weight: 600;">
+                        <i class="fa-solid fa-circle-exclamation"></i> 법적 보호 부재 / 교육 및 취업 소외
+                    </div>
+                </div>
+
+            </div>
+            
+        </div>
+    </div>
+
+    <script>
+        // 사람 아이콘 순차적 딜레이 설정 (CSS animation 시작은 .slide.active가 할 때까지 대기)
+        document.addEventListener('DOMContentLoaded', () => {
+            const icons = document.querySelectorAll('.staggered-grid .person-icon');
+            icons.forEach((icon, index) => {
+                icon.style.animationDelay = `${index * 0.02 + 0.5}s`; 
+            });
+        });
+    </script>
+
+    <style>
+        /* Person Grid Styling */
+        .people-grid {
+            display: grid; grid-template-columns: repeat(10, 1fr); gap: 10px; row-gap: 12px;
+        }
+        .person-icon {
+            font-size: 18px; color: #E5E8EB; text-align: center;
+            opacity: 0; /* 초기 상태: 숨김 */
+        }
+        
+        /* [중요] .slide.active 일 때만 애니메이션 시작 */
+        .slide.active .person-icon {
+            animation: popIcon 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        
+        .person-icon.highlight {
+            color: var(--toss-blue);
+        }
+        .slide.active .person-icon.highlight {
+            /* 하이라이트 펄스는 그래프가 어느 정도 차오른 뒤(2.5초 후) 시작 */
+            animation: popIcon 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards, pulse-icon 2s infinite 2.5s; 
+        }
+
+        /* [중요] Graph Animation Trigger */
+        
+        /* 1. 작은 그래프 */
+        .bar-fill-small {
+            width: 0%; /* 초기 상태 */
+        }
+        .slide.active .bar-fill-small {
+            /* 2초 동안 천천히 */
+            animation: fillBarSmall 2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+            animation-delay: 0.5s;
+        }
+
+        /* 2. 메인 그래프 */
+        .bar-fill-large {
+            width: 0%; /* 초기 상태 */
+        }
+        .slide.active .bar-fill-large {
+            /* 3.5초 동안 아주 묵직하고 천천히 */
+            animation: fillBarLarge 3.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+            animation-delay: 0.8s;
+        }
+        
+        /* [추가] 팝업 텍스트 (30배 규모)도 active 체크 */
+        .pop-in { opacity: 0; transform: scale(0.8); }
+        .slide.active .pop-in { 
+            animation: popInAnim 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        /* 딜레이는 HTML 클래스(d-4)가 아니라 CSS에서 제어하는 게 안전 */
+        .slide.active .pop-in.d-4 { animation-delay: 2.5s; } /* 그래프가 찰 때쯤 뜸 */
+
+
+        /* Keyframes */
+        @keyframes popIcon {
+            0% { opacity: 0; transform: scale(0.5); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes popInAnim {
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes fillBarSmall { from { width: 0%; } to { width: 3%; } }
+        @keyframes fillBarLarge { from { width: 0%; } to { width: 100%; } }
+
+        @keyframes pulse-icon {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</div>
+
+
+<div class="slide" style="background: white; padding: 60px 80px; display: flex; flex-direction: column;">
+    
+    <div class="grid-2" style="height: 100%; gap: 60px; align-items: center; grid-template-columns: 1fr 1fr;">
+        
+        <div class="reveal d-1" style="display: flex; flex-direction: column; justify-content: center;">
+            <div class="tag" style="background: #FFF0F0; color: var(--toss-red); align-self: flex-start;">SYSTEM BIAS</div>
+            
+            <h2 style="font-size: 42px; font-weight: 800; margin-top: 24px; margin-bottom: 24px; line-height: 1.35; color: var(--grey-900); word-break: keep-all;">
+                AI는 효율성을 위해<br>
+                <span style="color: var(--toss-red); text-decoration: underline; text-decoration-color: rgba(240,68,82,0.3);">저밀도 데이터</span>를 배제합니다.
+            </h2>
+            
+            <p style="color: var(--grey-600); font-size: 18px; line-height: 1.6; margin-bottom: 40px; word-break: keep-all;">
+                현재의 AI는 빠르고 복잡한 <strong>'표준 발화'</strong>에 최적화되어 있습니다.<br>
+                경계선 지능 부모님의 <strong>자연스러운(단순·느린) 말투</strong>는<br>
+                정보값이 낮은 데이터로 인식되어 필터링됩니다.
+            </p>
+
+            <div>
+                <div style="font-size: 12px; font-weight: 700; color: var(--grey-400); margin-bottom: 12px; letter-spacing: 1px;">TARGET MODEL ANALYSIS</div>
+                
+                <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+                    <span class="text-badge">OpenAI Whisper</span>
+                    <span class="text-badge">Google STT</span>
+                    <span class="text-badge">Gemini</span>
+                    <span class="text-badge" style="color: var(--grey-400); border-color: transparent; background: transparent;">etc.</span>
+                </div>
+
+                <div style="font-size: 15px; color: var(--toss-red); font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <span>결과: 느린 발화 시 '입력 종료'로 오인식율 40%↑</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="reveal d-2" style="height: 520px; position: relative; display: flex; justify-content: center;">
+            
+            <div style="position: absolute; inset: 0; background-image: linear-gradient(to bottom, #F9FAFB 1px, transparent 1px); background-size: 100% 40px; opacity: 0.5; z-index: 0;"></div>
+
+            <div class="vertical-filter-container">
+                
+                <div class="top-stream-area">
+                    <div style="font-size: 12px; font-weight: 700; color: var(--grey-500); margin-bottom: 8px;">INPUT STREAM</div>
+                    <div style="display: flex; gap: 6px; justify-content: center;">
+                        <div class="data-pkt-static blue">High Density</div>
+                        <div class="data-pkt-static red">Low Density</div>
+                    </div>
+                </div>
+
+                <div class="ai-filter-gate">
+                    <div class="gate-bar"></div>
+                    <div class="gate-core">
+                        <i class="fa-solid fa-layer-group" style="color: var(--toss-blue); font-size: 24px;"></i>
+                        <div style="font-size: 14px; font-weight: 900; color: var(--toss-blue); margin-top: 6px;">OPTIMIZATION</div>
+                        <div style="font-size: 10px; color: var(--grey-400);">Preference: Speed & Info</div>
+                    </div>
+                    <div class="gate-bar"></div>
+                </div>
+
+                <div class="bottom-buckets">
+                    
+                    <div class="bucket bucket-accepted">
+                        <div class="bucket-label blue">LEARNED</div>
+                        <div style="font-size: 28px;">💾</div>
+                        <div class="bucket-desc">Standard Speech</div>
+                    </div>
+
+                    <div class="bucket bucket-rejected">
+                        <div class="bucket-label red">FILTERED OUT</div>
+                        <div style="font-size: 28px; opacity: 0.5;">📉</div>
+                        <div class="bucket-desc">Simple & Slow</div>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="anim-layer-vertical" style="position: absolute; inset: 0; pointer-events: none; z-index: 10;">
+                <div class="pkt-v pv-blue v1"></div>
+                <div class="pkt-v pv-blue v2"></div>
+                <div class="pkt-v pv-red vr1"></div>
+                <div class="pkt-v pv-red vr2"></div>
+            </div>
+
+        </div>
+        
+    </div>
+
+    <style>
+        /* Text Badge Style */
+        .text-badge {
+            font-size: 14px; font-weight: 600; color: var(--grey-700);
+            background: #F2F4F6; padding: 6px 14px; border-radius: 8px;
+        }
+
+        /* Filter Container */
+        .vertical-filter-container {
+            width: 80%; height: 100%; background: white; border: 1px solid var(--grey-200); border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.05); display: flex; flex-direction: column; position: relative; z-index: 1; overflow: hidden;
+        }
+        .top-stream-area { padding: 16px; background: #F9FAFB; text-align: center; border-bottom: 1px dashed var(--grey-200); }
+        .data-pkt-static { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; color: white; }
+        .data-pkt-static.blue { background: var(--toss-blue); }
+        .data-pkt-static.red { background: var(--toss-red); opacity: 0.7; }
+
+        .ai-filter-gate { flex-grow: 1; display: flex; align-items: center; justify-content: center; position: relative; }
+        .gate-bar { height: 4px; flex-grow: 1; background: var(--grey-200); }
+        .gate-core { padding: 16px 24px; background: white; border: 2px solid var(--toss-blue-light); border-radius: 16px; text-align: center; z-index: 2; box-shadow: 0 10px 30px rgba(49, 130, 246, 0.1); }
+
+        .bottom-buckets { display: flex; border-top: 1px solid var(--grey-200); height: 120px; }
+        .bucket { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .bucket-accepted { background: #F2F7FF; border-right: 1px solid var(--grey-100); }
+        .bucket-rejected { background: #FFF0F0; }
+        .bucket-label { font-size: 13px; font-weight: 900; margin-bottom: 6px; }
+        .bucket-label.blue { color: var(--toss-blue); }
+        .bucket-label.red { color: var(--toss-red); }
+        .bucket-desc { font-size: 11px; color: var(--grey-500); font-weight: 600; }
+
+        /* Animation */
+        .pkt-v { width: 28px; height: 28px; border-radius: 50%; position: absolute; top: 10%; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .pv-blue { background: var(--toss-blue); left: 45%; }
+        .pv-red { background: var(--toss-red); left: 50%; }
+
+        .v1 { animation: fall-pass 3s ease-in infinite; }
+        .v2 { animation: fall-pass 3s ease-in infinite; animation-delay: 1.5s; }
+        .vr1 { animation: fall-fail 3s ease-in infinite; animation-delay: 0.7s; }
+        .vr2 { animation: fall-fail 3s ease-in infinite; animation-delay: 2.2s; }
+
+        @keyframes fall-pass {
+            0% { top: 5%; opacity: 0; } 10% { opacity: 1; } 50% { top: 50%; } 
+            90% { top: 85%; left: 25%; opacity: 1; transform: scale(1); } 
+            100% { top: 90%; left: 25%; opacity: 0; transform: scale(0.5); }
+        }
+        @keyframes fall-fail {
+            0% { top: 5%; opacity: 0; } 10% { opacity: 1; } 45% { top: 45%; transform: rotate(0deg); } 
+            50% { top: 45%; transform: rotate(20deg) translateX(10px); } 
+            90% { top: 85%; left: 75%; opacity: 1; transform: rotate(45deg); } 
+            100% { top: 90%; left: 75%; opacity: 0; transform: rotate(90deg) scale(0.5); }
+        }
+    </style>
+</div>
+
+
+<div class="slide" style="background: white;">
+    
+    <div class="grid-2" style="align-items: center; gap: 0; height: 100%;">
+        
+        <div class="reveal d-1" style="padding-right: 60px; border-right: 1px solid var(--grey-100); height: 80%; display: flex; flex-direction: column; justify-content: center;">
+            <div class="tag" style="background: var(--grey-100); color: var(--grey-600); align-self: flex-start;">THE QUESTION</div>
+            
+            <h2 style="font-size: 42px; font-weight: 800; margin-top: 24px; margin-bottom: 32px; line-height: 1.35; color: var(--grey-900);">
+                AI는 매일 발전하는데,<br>
+                <span style="color: var(--toss-blue);">그들은 왜 소외되는가?</span>
+            </h2>
+
+            <div style="background: #F9FAFB; padding: 32px; border-radius: 24px; display: flex; align-items: flex-start; gap: 20px; border: 1px solid var(--grey-100);">
+                <div style="font-size: 32px; background: white; width: 64px; height: 64px; border-radius: 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                    🚀
+                </div>
+                <div>
+                    <div style="font-size: 18px; font-weight: 800; color: var(--grey-800); margin-bottom: 6px;">기술은 이미 준비되었습니다.</div>
+                    <div style="font-size: 16px; color: var(--grey-500); line-height: 1.5;">
+                        음성 인식, 챗봇, 생성형 AI...<br>
+                        현존하는 기술로도 충분히 가능합니다.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="reveal d-2" style="padding-left: 80px; position: relative; height: 100%; display: flex; align-items: center;">
+            
+            <div style="position: absolute; left: -24px; top: 50%; transform: translateY(-50%); width: 48px; height: 48px; background: white; border: 1px solid var(--grey-200); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--grey-400); font-size: 18px; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                <i class="fa-solid fa-arrow-right"></i>
+            </div>
+
+            <div class="toss-card" style="border: none; background: #FFF9F9; box-shadow: 0 20px 60px rgba(240, 68, 82, 0.08); padding: 48px; border-radius: 32px; position: relative; overflow: hidden;">
+                <div style="position: absolute; top: -20px; right: -20px; font-size: 120px; opacity: 0.03; color: var(--toss-red); transform: rotate(15deg);">
+                    <i class="fa-solid fa-route"></i>
+                </div>
+
+                <div class="tag" style="background: rgba(240, 68, 82, 0.1); color: var(--toss-red); border: none; margin-bottom: 24px;">THE REAL BARRIER</div>
+                
+                <h3 style="font-size: 34px; font-weight: 800; margin-bottom: 24px; line-height: 1.4; color: var(--grey-900);">
+                    스마트폰 속 <span style="color: var(--toss-red); border-bottom: 3px solid rgba(240,68,82,0.2);">복잡한 과정</span>이<br>
+                    그들에게는 <span style="background: var(--toss-red); color: white; padding: 2px 8px; border-radius: 4px;">미로(Maze)</span>입니다.
+                </h3>
+                
+                <p style="color: var(--grey-600); font-size: 18px; line-height: 1.7; margin-bottom: 32px;">
+                    앱 실행부터 메뉴 탐색, 키보드 입력까지 —<br>
+                    <strong>디지털 조작(Navigation)</strong> 그 자체가<br>
+                    언어보다 더 높은 진입 장벽이 됩니다.
+                </p>
+
+                <div style="display: flex; align-items: center; gap: 12px; background: white; padding: 20px; border-radius: 16px; border: 1px solid #FFEAEA;">
+                    <div class="flow-step">App 실행</div>
+                    <i class="fa-solid fa-chevron-right" style="font-size: 10px; color: var(--grey-300);"></i>
+                    <div class="flow-step">메뉴 검색</div>
+                    <i class="fa-solid fa-chevron-right" style="font-size: 10px; color: var(--grey-300);"></i>
+                    <div class="flow-step">정보 독해</div>
+                    <i class="fa-solid fa-chevron-right" style="font-size: 10px; color: var(--grey-300);"></i>
+                    <div class="flow-step" style="background: #FFF0F0; color: var(--toss-red); border-color: #FFE0E0; font-weight: 800;">포기 (Drop)</div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <style>
+        .flow-step {
+            font-size: 13px; font-weight: 600; color: var(--grey-500);
+            padding: 8px 12px; border-radius: 8px; border: 1px solid var(--grey-100);
+            flex: 1; text-align: center; white-space: nowrap;
+        }
+    </style>
+</div>
+
+
+<div class="slide" style="text-align: center; justify-content: center; background: white; overflow: hidden; position: relative;">
+    
+    <div class="background-ripple-container">
+        <div class="bg-wave w1"></div>
+        <div class="bg-wave w2"></div>
+        <div class="bg-wave w3"></div>
+    </div>
+
+    <div class="reveal d-1" style="z-index: 10; margin-bottom: 60px; position: relative;">
+        <h2 style="font-size: 60px; font-weight: 800; line-height: 1.2; letter-spacing: -0.02em; color: var(--grey-900);">
+            복잡한 과정 대신,<br>
+            가볍게 <span style="color: var(--toss-blue);">태그</span>하세요.
+        </h2>
+        <p style="font-size: 24px; color: var(--grey-500); margin-top: 24px; font-weight: 500;">
+            Just Tag. That's It.
+        </p>
+    </div>
+
+    <div class="reveal d-2" style="position: relative; width: 100%; height: 300px; display: flex; align-items: center; justify-content: center; z-index: 5;">
+        
+        <div style="position: absolute; bottom: 40px;">
+            <div style="width: 120px; height: 120px; background: var(--grey-100); border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid var(--grey-200);">
+                <i class="fa-solid fa-nfc-symbol" style="font-size: 40px; color: var(--grey-400);"></i>
+            </div>
+            <div class="ripple-effect" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 120px; height: 120px; border-radius: 50%; border: 4px solid var(--toss-blue); opacity: 0;"></div>
+        </div>
+
+        <div class="phone-tagging" style="position: absolute; top: 0; width: 160px; height: 240px; background: white; border-radius: 32px; box-shadow: 0 20px 60px rgba(0,0,0,0.12); border: 4px solid var(--grey-100); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 5;">
+            <div style="width: 60px; height: 60px; background: var(--toss-blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; box-shadow: 0 4px 12px rgba(49, 130, 246, 0.4);">
+                <i class="fa-solid fa-check"></i>
+            </div>
+            <div style="margin-top: 16px; font-size: 14px; font-weight: 700; color: var(--grey-800);">인식 완료</div>
+            <div style="margin-top: 4px; font-size: 12px; color: var(--grey-500);">음성 재생 중...</div>
+        </div>
+
+    </div>
+
+    <style>
+        /* 태깅 애니메이션 정의 (기존 유지) */
+        .phone-tagging {
+            animation: tagAction 3s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+        }
+
+        .ripple-effect {
+            animation: rippleData 3s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+        }
+
+        @keyframes tagAction {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            40% { transform: translateY(80px) rotate(-5deg); }
+            50% { transform: translateY(80px) rotate(-5deg); }
+            70% { transform: translateY(0) rotate(0deg); }
+        }
+
+        @keyframes rippleData {
+            0%, 40% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            45% { opacity: 1; border-width: 4px; transform: translate(-50%, -50%) scale(1); }
+            70% { opacity: 0; border-width: 0px; transform: translate(-50%, -50%) scale(2.5); }
+            100% { opacity: 0; }
+        }
+
+        /* [수정됨] 배경 대형 파동 애니메이션 */
+        .background-ripple-container {
+            position: absolute;
+            top: 50%; left: 50%; transform: translate(-50%, -20%);
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .bg-wave {
+            position: absolute;
+            width: 180px; height: 180px;
+            border-radius: 50%;
+            /* 색상을 조금 더 진하게 (투명도 0.2 -> 0.4) */
+            border: 1px solid rgba(49, 130, 246, 0.4); 
+            opacity: 0;
+            /* 배경 채우기도 조금 더 진하게 */
+            background: radial-gradient(circle, rgba(49,130,246,0.08) 0%, transparent 65%);
+        }
+
+        .w1 { animation: bgWaveExpand 3s infinite linear; }
+        .w2 { animation: bgWaveExpand 3s infinite linear; animation-delay: 0.15s; }
+        .w3 { animation: bgWaveExpand 3s infinite linear; animation-delay: 0.3s; }
+
+        @keyframes bgWaveExpand {
+            0%, 40% { 
+                opacity: 0; 
+                transform: scale(0.8); 
+                border-width: 2px;
+            }
+            42% {
+                opacity: 0.6; /* 최대 투명도 상향 (0.3 -> 0.6) : 더 잘 보임 */
+            }
+            100% { 
+                opacity: 0; 
+                transform: scale(4.5); /* 크기 상향 (2.5 -> 4.5) : 더 넓게 퍼짐 */
+                border-width: 0px; 
+            }
+        }
+    </style>
+</div>
+
+
+<div class="slide" style="background: white; padding: 40px 50px; display: flex; flex-direction: column;">
+    
+    <div style="text-align: center; margin-bottom: 30px;">
+        <div class="tag reveal" style="background: var(--toss-blue-light); color: var(--toss-blue); position: relative; top: 20px;">OUR SOLUTION UX</div>
+        
+        <h2 class="reveal d-1" style="font-size: 44px; font-weight: 800; margin-top: 24px; color: var(--grey-900); line-height: 1.3; position: relative; top: 30px;">
+            복잡한 과정은 기술이 대신합니다.<br>
+            그들은 오직 <span style="color: var(--toss-blue);">'태그(Tag)'</span>만 하면 됩니다.
+        </h2>
+    </div>
+
+    <div class="reveal d-2" style="flex-grow: 1; display: flex; align-items: center; justify-content: space-between; padding: 10px 20px; position: relative;">
+        
+        <div style="position: absolute; top: 45%; left: 10%; right: 10%; height: 6px; background: var(--grey-100); z-index: 0; transform: translateY(-50%); border-radius: 4px;">
+            <div class="progress-line"></div>
+        </div>
+
+        <div class="step-container problem">
+            <div class="step-circle red shake-anim">
+                <i class="fa-solid fa-baby" style="font-size: 50px;"></i>
+                <div class="alert-badge"><i class="fa-solid fa-exclamation"></i></div>
+            </div>
+            <div class="step-text">
+                <div class="s-title red">1. 문제 발생</div>
+                <div class="s-desc">아이가 울고 당황함</div>
+            </div>
+        </div>
+
+        <div class="step-container nfc" style="animation-delay: 1.5s;">
+            <div class="step-circle blue">
+                <div class="tag-anim-wrapper">
+                    <div class="phone-icon-base"><i class="fa-solid fa-mobile-screen-button"></i></div>
+                    <div class="nfc-card">
+                        <i class="fa-solid fa-wifi" style="transform: rotate(90deg); font-size: 14px;"></i>
+                        <span style="font-size: 10px; font-weight: 800; margin-top: 4px;">TAG</span>
+                    </div>
+                </div>
+                <div class="ripple-effect"></div>
+            </div>
+            <div class="step-text">
+                <div class="s-title blue">2. NFC 태그</div>
+                <div class="s-desc">카드에 폰을 갖다 댐</div>
+            </div>
+        </div>
+
+        <div class="step-container launch" style="animation-delay: 3s;">
+            <div class="step-circle blue">
+                <div class="phone-frame-large">
+                    <div class="screen-content success-bg">
+                        <div class="check-mark-anim">
+                            <i class="fa-solid fa-check"></i>
+                        </div>
+                        <div style="font-size: 10px; font-weight: 800; color: white; margin-top: 4px;">App ON</div>
+                    </div>
+                </div>
+            </div>
+            <div class="step-text">
+                <div class="s-title blue">3. 즉시 실행</div>
+                <div class="s-desc">잠금해제 없이 앱 실행</div>
+            </div>
+        </div>
+
+        <div class="step-container solution" style="animation-delay: 4.5s;">
+            <div class="step-circle blue">
+                 <div class="phone-frame-large">
+                    <div class="screen-content chat-bg">
+                        <div class="robot-anim">
+                            <i class="fa-solid fa-robot"></i>
+                        </div>
+                        <div class="chat-bubble-anim">
+                            <div class="lines"></div>
+                            <div class="lines short"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="step-text">
+                <div class="s-title blue">4. 맞춤 솔루션</div>
+                <div class="s-desc">AI 챗봇 가이드 제공</div>
+            </div>
+        </div>
+
+    </div>
+
+    <style>
+        /* [중요] .slide.active 가 붙어야 애니메이션 시작 */
+        
+        /* 1. 컨테이너 등장 (Step Containers) */
+        .step-container {
+            display: flex; flex-direction: column; align-items: center; gap: 24px; width: 160px;
+            position: relative; z-index: 1; opacity: 0; /* 초기 상태 숨김 */
+        }
+        .slide.active .step-container {
+            animation: fade-slide-up 0.8s forwards;
+        }
+
+        /* 2. 진행 바 (Progress Line) */
+        .progress-line {
+            height: 100%; background: var(--toss-blue); width: 0%; border-radius: 4px;
+        }
+        .slide.active .progress-line {
+            animation: progress-flow 6s linear forwards;
+            animation-delay: 0.5s;
+        }
+
+        /* 3. 폰 화면 켜짐 효과 (Screen Turn On) */
+        .screen-content { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; }
+        
+        .success-bg { background: var(--toss-blue); }
+        .slide.active .success-bg { animation: screen-turn-on 0.4s forwards; animation-delay: 3.2s; }
+
+        .chat-bg { background: #E8F3FF; }
+        .slide.active .chat-bg { animation: screen-turn-on 0.4s forwards; animation-delay: 4.7s; }
+
+        /* 4. 체크마크 팝업 (Check Mark) */
+        .check-mark-anim { font-size: 40px; color: white; transform: scale(0); }
+        .slide.active .check-mark-anim { animation: check-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; animation-delay: 3.4s; }
+
+        /* 5. 말풍선 등장 (Chat Bubble) */
+        .chat-bubble-anim {
+            width: 50px; height: 30px; background: white; border-radius: 8px; border-bottom-left-radius: 0;
+            padding: 6px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            opacity: 0; transform: translateY(10px);
+        }
+        .slide.active .chat-bubble-anim { animation: bubble-up 0.5s forwards; animation-delay: 5s; }
+
+
+        /* --- 아래는 반복 재생 애니메이션 (Loop)라 active 상관없이 둠 --- */
+        .step-circle {
+            width: 140px; height: 140px; background: white; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.08); position: relative;
+            transition: transform 0.3s;
+        }
+        .step-circle.red { border: 5px solid #FFEAEA; color: var(--toss-red); background: #FFF9F9; }
+        .step-circle.blue { border: 5px solid #E8F3FF; color: var(--toss-blue); background: #F9FAFB; }
+        
+        .step-text { text-align: center; }
+        .s-title { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+        .s-title.red { color: var(--toss-red); }
+        .s-title.blue { color: var(--toss-blue); }
+        .s-desc { font-size: 16px; color: var(--grey-500); font-weight: 500; }
+
+        .shake-anim i { animation: shake 0.8s ease-in-out infinite; transform-origin: center bottom; }
+        .alert-badge {
+            position: absolute; top: 10px; right: 20px; width: 40px; height: 40px; background: var(--toss-red);
+            color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 24px; border: 4px solid white; animation: pulse-red 1.5s infinite;
+        }
+        .tag-anim-wrapper { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+        .phone-icon-base { font-size: 70px; color: var(--grey-300); }
+        .nfc-card {
+            position: absolute; width: 50px; height: 80px; background: var(--toss-blue); border-radius: 8px;
+            bottom: 20px; right: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white;
+            box-shadow: 0 5px 15px rgba(49, 130, 246, 0.4); border: 2px solid white;
+            animation: tap-card 2s ease-in-out infinite;
+        }
+        .ripple-effect {
+            position: absolute; width: 20px; height: 20px; background: rgba(49, 130, 246, 0.3); border-radius: 50%;
+            top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0;
+            animation: ripple-grow 2s infinite; animation-delay: 1s;
+        }
+        
+        .phone-frame-large {
+            width: 70px; height: 110px; background: var(--grey-800); border-radius: 16px; 
+            border: 4px solid var(--grey-300); overflow: hidden; position: relative;
+        }
+        .robot-anim { 
+            font-size: 36px; color: var(--toss-blue); margin-bottom: 8px; 
+            animation: float-robot 2s ease-in-out infinite; 
+        }
+        .lines { width: 100%; height: 4px; background: var(--grey-200); border-radius: 2px; }
+        .lines.short { width: 60%; }
+
+        @keyframes shake { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-10deg); } 75% { transform: rotate(10deg); } }
+        @keyframes pulse-red { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        @keyframes tap-card { 0%, 100% { transform: translate(0, 0) rotate(0deg); } 50% { transform: translate(-20px, -20px) rotate(-10deg); } }
+        @keyframes ripple-grow { 0% { width: 20px; height: 20px; opacity: 1; } 100% { width: 160px; height: 160px; opacity: 0; } }
+        @keyframes screen-turn-on { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes check-pop { from { transform: scale(0); } to { transform: scale(1); } }
+        @keyframes bubble-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes float-robot { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        @keyframes progress-flow { from { width: 0%; } to { width: 100%; } }
+        @keyframes fade-slide-up { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</div>
+
+
+
+
+<div class="slide" style="background: #F9FAFB; overflow: hidden; position: relative; padding: 0;">
+    <div style="position: absolute; inset: 0; pointer-events: none;">
+        <div style="position: absolute; top: -10%; left: -10%; width: 800px; height: 800px; background: radial-gradient(circle, rgba(49,130,246,0.03) 0%, rgba(255,255,255,0) 70%);"></div>
+        <div style="position: absolute; inset: 0; background-image: linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px); background-size: 40px 40px;"></div>
+    </div>
+
+    <div class="grid-2" style="height: 100%; padding: 60px 80px; grid-template-columns: 0.8fr 1.2fr; gap: 60px; align-items: center; position: relative; z-index: 2;">
+        <div class="reveal d-1">
+            <div class="tag" style="background: var(--toss-blue); color: white; border: none; box-shadow: 0 4px 12px rgba(49, 130, 246, 0.2);">SYSTEM CONNECTIVITY</div>
+            <h2 style="font-size: 48px; font-weight: 800; margin-top: 24px; margin-bottom: 24px; line-height: 1.2; color: var(--grey-900);">
+                흩어진 목소리를<br>
+                <span style="color: var(--toss-blue);">하나의 데이터</span>로.
+            </h2>
+            <p style="color: var(--grey-600); font-size: 18px; line-height: 1.6; margin-bottom: 40px;">
+                부모, 센터, 현장의 기록이<br>
+                따로 놀지 않고 <strong>실시간으로 동기화</strong>됩니다.<br>
+                모든 데이터가 V.O.M으로 모입니다.
+            </p>
+            <div style="background: white; padding: 20px; border-radius: 16px; border: 1px solid var(--grey-200); box-shadow: var(--shadow-1);">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                     <div style="width: 24px; height: 24px; background: var(--toss-blue); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px;">1</div>
+                     <div style="font-size: 14px; font-weight: 700; color: var(--toss-blue);">데이터 통합</div>
+                     <i class="fa-solid fa-arrow-right" style="color: var(--grey-400); font-size: 12px;"></i>
+                     <div style="width: 24px; height: 24px; background: var(--grey-100); color: var(--grey-500); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px;">2</div>
+                     <div style="font-size: 14px; font-weight: 700; color: var(--grey-400);">분석 및 시각화</div>
+                </div>
+                <div style="font-size: 12px; color: var(--grey-500);">
+                    NFC 태깅과 음성 기록이<br>
+                    클라우드 서버로 즉시 전송됩니다.
+                </div>
+            </div>
+        </div>
+
+        <div class="reveal d-2" style="position: relative; height: 500px; display: flex; align-items: center; justify-content: center;">
+             <svg width="540" height="440" style="position: absolute; z-index: 0;">
+                <path d="M270 40 L 60 400 L 480 400 Z" fill="none" stroke="#E5E8EB" stroke-width="4" stroke-linejoin="round" style="border-radius: 30px;"/>
+                <path class="flow-line" d="M270 40 L 60 400 L 480 400 Z" fill="none" stroke="url(#gradient-step1)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+                <defs>
+                    <linearGradient id="gradient-step1" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#3182F6" />
+                        <stop offset="100%" stop-color="#33C759" />
+                    </linearGradient>
+                </defs>
+            </svg>
+            <div class="pop-in d-3" style="position: absolute; top: 0; left: 42%; transform: translateX(-50%); text-align: center; z-index: 5;">
+                <div style="width: 96px; height: 96px; background: white; border-radius: 50%; box-shadow: var(--shadow-2); display: flex; align-items: center; justify-content: center; border: 4px solid white;">
+                    <span style="font-size: 40px;">🖥️</span>
+                </div>
+                <div style="margin-top: 12px; background: white; padding: 6px 16px; border-radius: 20px; font-weight: 700; color: var(--grey-800); box-shadow: var(--shadow-1); display: inline-block;">Center</div>
+            </div>
+            <div class="pop-in d-4" style="position: absolute; bottom: 0; left: 45px; text-align: center; z-index: 5;">
+                <div style="width: 96px; height: 96px; background: white; border-radius: 50%; box-shadow: var(--shadow-2); display: flex; align-items: center; justify-content: center; border: 4px solid white;">
+                    <span style="font-size: 40px;">📱</span>
+                </div>
+                <div style="margin-top: 12px; background: white; padding: 6px 16px; border-radius: 20px; font-weight: 700; color: var(--grey-800); box-shadow: var(--shadow-1); display: inline-block;">Home</div>
+            </div>
+            <div class="pop-in d-5" style="position: absolute; bottom: 0; right: 45px; text-align: center; z-index: 5;">
+                 <div style="width: 96px; height: 96px; background: white; border-radius: 50%; box-shadow: var(--shadow-2); display: flex; align-items: center; justify-content: center; border: 4px solid white;">
+                    <span style="font-size: 40px;">🛠️</span>
+                </div>
+                <div style="margin-top: 12px; background: white; padding: 6px 16px; border-radius: 20px; font-weight: 700; color: var(--grey-800); box-shadow: var(--shadow-1); display: inline-block;">Field</div>
+            </div>
+            <div class="pop-in d-2" style="position: absolute; top: 50%; left: 42%; transform: translate(-50%, -50%);">
+                <div class="pulse" style="width: 100px; height: 100px; background: rgba(232, 243, 255, 0.95); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--toss-blue); font-weight: 800; font-size: 12px; border: 3px solid white; box-shadow: var(--shadow-1);">
+                    <div>Real-time</div>
+                    <div style="font-size: 16px;">SYNC</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <style>
+        .flow-line { stroke-dasharray: 24; animation: dash 2s linear infinite; }
+        @keyframes dash { to { stroke-dashoffset: -48; } }
+    </style>
+</div>
+
+
+<div class="slide" style="background: #F9FAFB; overflow: hidden; position: relative; padding: 0;">
+    <div style="position: absolute; inset: 0; pointer-events: none;">
+        <div style="position: absolute; top: -20%; left: -10%; width: 900px; height: 900px; background: radial-gradient(circle, rgba(49, 130, 246, 0.03) 0%, rgba(255,255,255,0) 70%);"></div>
+        <div style="position: absolute; inset: 0; background-image: linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px); background-size: 40px 40px;"></div>
+    </div>
+
+    <div class="grid-2" style="height: 100%; padding: 60px 80px; grid-template-columns: 0.8fr 1.2fr; gap: 80px; align-items: center; position: relative; z-index: 2;">
+        <div class="reveal d-1">
+            <div class="tag" style="background: var(--grey-100); color: var(--grey-600); border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">INTELLIGENT INSIGHT</div>
+            
+            <h2 style="font-size: 48px; font-weight: 800; margin-top: 24px; margin-bottom: 24px; line-height: 1.2; color: var(--grey-900);">
+                복잡한 데이터를<br>
+                <span style="color: var(--toss-blue);">직관적인 정보</span>로.
+            </h2>
+            
+            <p style="color: var(--grey-600); font-size: 18px; line-height: 1.6; margin-bottom: 40px;">
+                흩어져 있던 현장의 목소리를<br>
+                실시간으로 수집하고 구조화합니다.<br>
+                <strong>보이지 않던 위험</strong>이 한눈에 보입니다.
+            </p>
+
+            <div style="background: white; padding: 20px; border-radius: 16px; border: 1px solid var(--grey-200); box-shadow: var(--shadow-1);">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                     <div style="width: 24px; height: 24px; background: var(--grey-100); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--grey-500);">1</div>
+                     <div style="font-size: 14px; font-weight: 700; color: var(--grey-500);">흩어진 목소리</div>
+                     <i class="fa-solid fa-arrow-right" style="color: var(--grey-400); font-size: 12px;"></i>
+                     <div style="width: 24px; height: 24px; background: var(--toss-blue); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px;">2</div>
+                     <div style="font-size: 14px; font-weight: 700; color: var(--toss-blue);">직관적 정보</div>
+                </div>
+                <div style="font-size: 12px; color: var(--grey-500);">
+                    실시간 데이터 파이프라인이<br>
+                    비정형 음성을 정형 데이터로 변환합니다.
+                </div>
+            </div>
+        </div>
+
+        <div class="reveal d-2" style="position: relative; perspective: 1500px; height: 500px; display: flex; align-items: center;">
+            <div class="dashboard-window" style="position: relative; width: 100%; height: 95%; background: white; border-radius: 24px; box-shadow: 0 40px 100px -20px rgba(0,0,0,0.15); transform: rotateY(-10deg) rotateX(4deg); transition: transform 0.5s; overflow: hidden; display: flex; flex-direction: column; border: 1px solid var(--grey-200);">
+                
+                <div style="padding: 16px 24px; border-bottom: 1px solid var(--grey-100); display: flex; align-items: center; justify-content: space-between; background: #fff;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 10px; height: 10px; background: var(--toss-red); border-radius: 50%;"></div>
+                        <div style="width: 10px; height: 10px; background: var(--toss-yellow); border-radius: 50%;"></div>
+                        <div style="width: 10px; height: 10px; background: var(--toss-green); border-radius: 50%;"></div>
+                        <div style="height: 16px; width: 1px; background: var(--grey-200); margin: 0 4px;"></div>
+                        <div style="font-size: 13px; font-weight: 700; color: var(--grey-700);">V.O.M Admin Console</div>
+                    </div>
+                    <div style="font-size: 12px; color: var(--toss-blue); font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                        <div class="pulse" style="width: 6px; height: 6px; background: var(--toss-blue); border-radius: 50%;"></div> Live Analysis
+                    </div>
+                </div>
+
+                <div style="flex: 1; display: flex; background: #F9FAFB;">
+                    <div style="width: 60px; border-right: 1px solid var(--grey-200); background: white; display: flex; flex-direction: column; align-items: center; padding-top: 20px; gap: 24px;">
+                         <i class="fa-solid fa-layer-group" style="color: var(--toss-blue); font-size: 18px;"></i>
+                         <i class="fa-solid fa-chart-pie" style="color: var(--grey-400); font-size: 18px;"></i>
+                         <i class="fa-solid fa-users" style="color: var(--grey-400); font-size: 18px;"></i>
+                    </div>
+
+                    <div style="flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+                        <div style="display: flex; gap: 12px;">
+                            <div class="metric-card" style="flex: 1; background: white; padding: 16px; border-radius: 12px; border: 1px solid var(--grey-100); box-shadow: var(--shadow-1);">
+                                <div style="font-size: 11px; color: var(--grey-500); font-weight: 700;">ACTIVE USERS</div>
+                                <div style="font-size: 20px; font-weight: 800; color: var(--grey-900); margin-top: 4px;">1,256</div>
+                            </div>
+                            <div class="metric-card" style="flex: 1; background: white; padding: 16px; border-radius: 12px; border: 1px solid var(--grey-100); box-shadow: var(--shadow-1);">
+                                <div style="font-size: 11px; color: var(--grey-500); font-weight: 700;">DAILY LOGS</div>
+                                <div style="font-size: 20px; font-weight: 800; color: var(--toss-blue); margin-top: 4px;">8,492</div>
+                            </div>
+                            <div class="metric-card" style="flex: 1; background: #FFF5F5; padding: 16px; border-radius: 12px; border: 1px solid #FFEBEB;">
+                                <div style="font-size: 11px; color: #FA5252; font-weight: 700;">RISK DETECTED</div>
+                                <div style="font-size: 20px; font-weight: 800; color: #FA5252; margin-top: 4px;">3</div>
+                            </div>
+                        </div>
+
+                        <div style="flex: 1; background: white; border-radius: 12px; border: 1px solid var(--grey-200); padding: 16px; overflow: hidden; display: flex; flex-direction: column;">
+                            <div style="font-size: 12px; font-weight: 700; color: var(--grey-800); margin-bottom: 12px; display: flex; justify-content: space-between;">
+                                <span>LIVE ACTIVITY FEED</span>
+                                <span style="color: var(--grey-400);">Updated 1s ago</span>
+                            </div>
+                            
+                            <div class="log-container" style="display: flex; flex-direction: column; gap: 8px;">
+                                <div class="log-item" style="display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 8px; background: #F9FAFB;">
+                                    <div style="font-size: 10px; color: var(--grey-500); font-family: monospace;">14:32:05</div>
+                                    <div style="width: 6px; height: 6px; background: var(--toss-blue); border-radius: 50%;"></div>
+                                    <div style="font-size: 11px; color: var(--grey-700);"><strong>김OO 아동</strong> 해열제 투약 태그 인식</div>
+                                </div>
+                                <div class="log-item" style="display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 8px; background: #F9FAFB;">
+                                    <div style="font-size: 10px; color: var(--grey-500); font-family: monospace;">14:31:48</div>
+                                    <div style="width: 6px; height: 6px; background: var(--toss-blue); border-radius: 50%;"></div>
+                                    <div style="font-size: 11px; color: var(--grey-700);"><strong>박OO 부모</strong> 육아 가이드 열람 완료</div>
+                                </div>
+                                <div class="log-item" style="display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 8px; background: #FFF5F5; border: 1px solid #FFEC99;">
+                                    <div style="font-size: 10px; color: #FA5252; font-family: monospace;">14:30:12</div>
+                                    <div class="pulse" style="width: 6px; height: 6px; background: #FA5252; border-radius: 50%;"></div>
+                                    <div style="font-size: 11px; color: #FA5252;"><strong>이OO 가정</strong> 긴급 키워드 "열이 안 내려요" 감지</div>
+                                </div>
+                                <div class="log-item" style="display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 8px; background: #F9FAFB;">
+                                    <div style="font-size: 10px; color: var(--grey-500); font-family: monospace;">14:29:55</div>
+                                    <div style="width: 6px; height: 6px; background: var(--toss-blue); border-radius: 50%;"></div>
+                                    <div style="font-size: 11px; color: var(--grey-700);"><strong>최OO 아동</strong> 식사 기록 데이터 업로드</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: rgba(49, 130, 246, 0.5); box-shadow: 0 0 10px rgba(49, 130, 246, 0.8); animation: scan 3s linear infinite; pointer-events: none;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <style>
+        .dashboard-window { animation: float-card 8s ease-in-out infinite; }
+        .dashboard-window:hover { transform: rotateY(0deg) rotateX(0deg) scale(1.02) !important; animation-play-state: paused; }
+        @keyframes float-card { 0% { transform: rotateY(-10deg) rotateX(4deg) translateY(0px); } 50% { transform: rotateY(-10deg) rotateX(4deg) translateY(-10px); } 100% { transform: rotateY(-10deg) rotateX(4deg) translateY(0px); } }
+        @keyframes scan { 0% { top: 0%; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
+    </style>
+</div>
+
+
+<div class="slide" style="background: #F9FAFB; overflow: hidden; position: relative; padding: 0;">
+    
+    <div style="position: absolute; inset: 0; pointer-events: none;">
+        <div style="position: absolute; top: 20%; right: -10%; width: 600px; height: 600px; background: radial-gradient(circle, rgba(255, 145, 0, 0.08) 0%, rgba(255,255,255,0) 70%);"></div>
+        <div style="position: absolute; inset: 0; background-image: linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px); background-size: 40px 40px;"></div>
+    </div>
+
+    <div class="grid-2" style="height: 100%; padding: 60px 80px; grid-template-columns: 0.8fr 1.2fr; gap: 80px; align-items: center; position: relative; z-index: 2;">
+        
+        <div class="reveal d-1">
+            <div class="tag" style="background: var(--toss-green); color: white; border: none; box-shadow: 0 4px 12px rgba(51, 199, 89, 0.3);">ACTIONABLE SOLUTION</div>
+            
+            <h2 style="font-size: 48px; font-weight: 800; margin-top: 24px; margin-bottom: 24px; line-height: 1.2; color: var(--grey-900);">
+                막막한 순간,<br>
+                <span style="color: var(--toss-green);">쉬운 행동 가이드</span>로.
+            </h2>
+            
+            <p style="color: var(--grey-600); font-size: 18px; line-height: 1.6; margin-bottom: 40px;">
+                "아이가 우는데 왜 우는지 모르겠어요."<br>
+                돌발 상황이 감지되면, 어머님이 당황하지 않도록<br>
+                <strong>가장 쉬운 대처 방법</strong>을 즉시 알려드립니다.
+            </p>
+
+            <div style="background: white; padding: 20px; border-radius: 16px; border: 1px solid var(--grey-200); box-shadow: var(--shadow-1);">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                     <div style="width: 24px; height: 24px; background: #FFF4E6; color: #FF9100; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800;">1</div>
+                     <div style="font-size: 14px; font-weight: 700; color: #FF9100;">위기 감지</div>
+                     <i class="fa-solid fa-arrow-right" style="color: var(--grey-400); font-size: 12px;"></i>
+                     <div style="width: 24px; height: 24px; background: var(--toss-green); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800;">2</div>
+                     <div style="font-size: 14px; font-weight: 700; color: var(--toss-green);">육아 코칭</div>
+                </div>
+                <div style="font-size: 12px; color: var(--grey-500);">
+                    보호자의 인지 특성을 고려하여<br>
+                    이미지와 쉬운 언어로 행동 요령을 전달합니다.
+                </div>
+            </div>
+        </div>
+
+        <div class="reveal d-2" style="position: relative; height: 500px; display: flex; align-items: center; padding-left: 40px;"> 
+            
+            <div class="phone-frame-medium" style="width: 340px; height: 600px; background: white; border-radius: 48px; border: 10px solid var(--grey-100); box-shadow: 50px 50px 100px -20px rgba(0,0,0,0.2); position: relative; overflow: hidden; transform: rotateY(-20deg) rotateX(10deg); z-index: 10;">
+                <div style="padding: 24px; background: #F2F4F6; height: 100%; display: flex; flex-direction: column;">
+                    
+                    <div style="text-align: center; font-size: 14px; color: var(--grey-500); margin-bottom: 20px; font-weight: 600;">14:30</div>
+                    
+                    <div class="risk-card-anim" style="background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); margin-bottom: 16px; border-left: 5px solid #FF3B30; position: relative;">
+                        <div style="display: flex; gap: 12px; align-items: flex-start;">
+                            <div style="width: 36px; height: 36px; background: #FFF0F0; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #FF3B30; font-size: 16px; flex-shrink: 0;">
+                                <i class="fa-solid fa-bell"></i>
+                            </div>
+                            <div>
+                                <div style="font-size: 12px; color: var(--grey-500); font-weight: 700; margin-bottom: 4px;">긴급 돌봄 알림</div>
+                                <div style="font-size: 15px; font-weight: 700; color: var(--grey-800); line-height: 1.4;">
+                                    "아기 울음소리가<br>
+                                    <span style="color: #FF3B30; border-bottom: 2px solid rgba(255, 59, 48, 0.2);">10분 이상</span> 지속되고 있어요."
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="arrow-anim" style="text-align: center; color: var(--grey-400); margin-bottom: 16px; font-size: 18px;">
+                        <i class="fa-solid fa-arrow-down"></i>
+                    </div>
+
+                    <div class="solution-card-anim" style="background: white; padding: 24px; border-radius: 24px; box-shadow: 0 15px 40px rgba(0,0,0,0.08); margin-bottom: 20px; border-left: 5px solid var(--toss-green);">
+                        <div style="display: flex; gap: 16px; margin-bottom: 16px;">
+                            <div style="width: 48px; height: 48px; background: var(--toss-green-light); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--toss-green); font-size: 24px;">
+                                <i class="fa-solid fa-user-nurse"></i>
+                            </div>
+                            <div>
+                                <div style="font-size: 13px; color: var(--grey-500); font-weight: 700; margin-bottom: 4px;">엄마를 위한 행동 카드</div>
+                                <div style="font-size: 18px; font-weight: 800; color: var(--grey-900); line-height: 1.3;">이렇게 해보세요</div>
+                            </div>
+                        </div>
+                        <ul style="font-size: 15px; color: var(--grey-700); line-height: 1.8; margin-bottom: 20px; list-style: none; padding: 0;">
+                            <li><i class="fa-solid fa-check" style="color: var(--toss-green); margin-right: 8px;"></i>기저귀가 젖었는지 확인</li>
+                            <li><i class="fa-solid fa-check" style="color: var(--toss-green); margin-right: 8px;"></i>아기 배를 쓰다듬어 주기</li>
+                        </ul>
+                        <div style="background: var(--toss-green); color: white; text-align: center; padding: 12px; border-radius: 12px; font-size: 14px; font-weight: 800; cursor: pointer; box-shadow: 0 6px 15px rgba(51, 199, 89, 0.3);">알기 쉬운 그림 보기</div>
+                    </div>
+
+                    <div style="background: white; padding: 20px; border-radius: 20px; opacity: 0.5; flex-grow: 1;">
+                        <div style="width: 40%; height: 12px; background: var(--grey-200); border-radius: 6px; margin-bottom: 10px;"></div>
+                        <div style="width: 80%; height: 10px; background: var(--grey-100); border-radius: 6px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; z-index: 15;">
+                
+                <div class="real-3d-obj" style="top: 15%; left: 380px; animation-delay: 0s;"> 
+                    <div class="tactile-card" style="transform: rotate(10deg);">
+                        <div style="font-size: 40px; margin-bottom: 10px;">📖</div>
+                        <div style="font-size: 16px; font-weight: 800; color: var(--grey-800);">쉬운 매뉴얼</div>
+                        <div style="font-size: 12px; color: var(--grey-500); margin-top: 4px;">그림으로 설명</div>
+                    </div>
+                </div>
+
+                <div class="real-3d-obj" style="top: 55%; left: 450px; animation-delay: 1.2s;"> 
+                    <div class="tactile-badge green" style="transform: rotate(15deg);">
+                        <div style="background: white; padding: 6px; border-radius: 50%;">🛡️</div>
+                        <span>양육 자신감 UP</span>
+                    </div>
+                </div>
+
+                <div class="real-3d-obj" style="top: 70%; left: 400px; animation-delay: 0.6s;"> 
+                    <div class="tactile-badge blue" style="transform: rotate(-10deg);">
+                        <div style="background: white; padding: 6px; border-radius: 50%;">✅</div>
+                        <span>안전 체크 완료</span>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <style>
+        /* Animations & Styles (Same as previous) */
+        .phone-frame-medium { animation: float-phone-medium 6s ease-in-out infinite; }
+        .risk-card-anim { animation: slide-in-top-fade 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; animation-delay: 0.3s; }
+        .arrow-anim { animation: fade-in 0.5s ease-in both; animation-delay: 1.0s; }
+        .solution-card-anim { animation: slide-in-bottom-fade 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; animation-delay: 1.3s; }
+        .real-3d-obj { position: absolute; animation: float-3d 5s ease-in-out infinite; perspective: 1000px; }
+        
+        /* Styles */
+        .tactile-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f0f2f5 100%);
+            padding: 24px; border-radius: 24px;
+            box-shadow: 20px 20px 60px rgba(0,0,0,0.15), 0 4px 8px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.8);
+            border: 1px solid rgba(255,255,255,1);
+            display: flex; flex-direction: column; align-items: center; width: 140px;
+            transform-style: preserve-3d;
+        }
+        .tactile-badge {
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px 16px 8px 8px; border-radius: 40px;
+            font-size: 14px; font-weight: 800;
+            box-shadow: 10px 10px 30px rgba(0,0,0,0.12), inset 0 2px 4px rgba(255,255,255,0.4);
+            border: 2px solid white; backdrop-filter: blur(4px);
+        }
+        .tactile-badge.green { background: linear-gradient(135deg, #E8F9EC 0%, #C4F0D1 100%); color: var(--toss-green); }
+        .tactile-badge.blue { background: linear-gradient(135deg, #E8F3FF 0%, #C8E1FF 100%); color: var(--toss-blue); }
+
+        @keyframes float-phone-medium { 0%, 100% { transform: rotateY(-20deg) rotateX(10deg) translateY(0px); } 50% { transform: rotateY(-20deg) rotateX(10deg) translateY(-20px); } }
+        @keyframes slide-in-top-fade { 0% { transform: translateY(-20px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+        @keyframes slide-in-bottom-fade { 0% { transform: translateY(20px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes float-3d { 0%, 100% { transform: translateY(0) scale(1) rotate3d(1, 1, 0, 0deg); } 50% { transform: translateY(-15px) scale(1.05) rotate3d(1, 1, 0, 5deg); } }
+    </style>
+</div>
+
+
+
+<div class="slide" style="background: white; padding: 0;">
+    
+    <div class="grid-2" style="grid-template-columns: 1fr 1fr; gap: 80px; height: 100%; align-items: center; padding: 0 60px;">
+        
+        <div style="height: 480px; display: flex; flex-direction: column; justify-content: flex-end; position: relative;">
+
+            <div style="position: absolute; inset: 0; z-index: 0; display: flex; flex-direction: column; justify-content: space-between; padding-bottom: 40px;">
+                <div style="width: 100%; height: 1px; background: var(--grey-100); border-bottom: 1px dashed var(--grey-200);"></div>
+                <div style="width: 100%; height: 1px; background: var(--grey-100); border-bottom: 1px dashed var(--grey-200);"></div>
+                <div style="width: 100%; height: 1px; background: var(--grey-100); border-bottom: 1px dashed var(--grey-200);"></div>
+                <div style="width: 100%; height: 1px; background: var(--grey-100); border-bottom: 1px solid var(--grey-300);"></div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; height: 100%; padding: 0 20px; z-index: 1; padding-bottom: 40px;">
+                <div class="bar-container som" style="display: flex; flex-direction: column; align-items: center; width: 30%;">
+                    <div class="bubble-label" style="background: var(--toss-green); color: white;">210억<div class="arrow-down" style="border-top-color: var(--toss-green);"></div></div>
+                    <div class="bar-body" style="--h: 120px; background: #E8F9EC; border: 1px solid #CFF4D8;"></div>
+                    <div class="bar-title" style="color: var(--toss-green);">SOM</div>
+                </div>
+                <div class="bar-container sam" style="display: flex; flex-direction: column; align-items: center; width: 30%;">
+                    <div class="bubble-label" style="background: var(--toss-blue); color: white;">2.1조<div class="arrow-down" style="border-top-color: var(--toss-blue);"></div></div>
+                    <div class="bar-body" style="--h: 240px; background: #E8F3FF; border: 1px solid #DBE9FF;"></div>
+                    <div class="bar-title" style="color: var(--toss-blue);">SAM</div>
+                </div>
+                <div class="bar-container tam" style="display: flex; flex-direction: column; align-items: center; width: 30%;">
+                    <div class="bubble-label" style="background: var(--grey-700); color: white;">$500B<div class="arrow-down" style="border-top-color: var(--grey-700);"></div></div>
+                    <div class="bar-body" style="--h: 360px; background: var(--grey-100); border: 1px solid var(--grey-200);"></div>
+                    <div class="bar-title" style="color: var(--grey-600);">TAM</div>
+                </div>
+            </div>
+            
+            <div class="caption-text" style="position: absolute; bottom: 0; width: 100%; text-align: left;">
+                <p style="font-size: 11px; color: var(--grey-400); font-weight: 500; margin: 0;">* Source: 통계청 2024 인구총조사, 보건복지부 발달장애인 실태조사</p>
+            </div>
+        </div>
+
+        <div class="right-content" style="display: flex; flex-direction: column; justify-content: center;">
+            <div class="tag" style="background: var(--grey-100); color: var(--grey-700); align-self: flex-start; margin-bottom: 20px;">MARKET SCALE-UP</div>
+            <h2 style="font-size: 48px; font-weight: 800; margin-bottom: 30px; line-height: 1.2; color: var(--grey-900);">
+                From Niche<br><span style="color: var(--toss-blue);">to Global.</span>
+            </h2>
+            <p style="color: var(--grey-600); font-size: 18px; line-height: 1.6; margin-bottom: 40px;">
+                초기 시장인 <strong>SOM</strong>에서 시작하여,<br><strong>TAM</strong>으로 확장하는 명확한 로드맵입니다.
+            </p>
+            <div class="market-list" style="display: flex; flex-direction: column; gap: 16px;">
+                <div class="market-item" style="border: 1px solid var(--toss-green-light); background: #F9FDF9;">
+                    <div class="icon-box" style="background: var(--toss-green-light); color: var(--toss-green);"><i class="fa-solid fa-seedling"></i></div>
+                    <div><div style="font-size: 14px; font-weight: 700; color: var(--toss-green);">SOM (Entry)</div><div style="font-size: 16px; color: var(--grey-800); font-weight: 600;">국내 경계선 지능 가정 <span style="color: var(--grey-500); font-weight: 400;">(7만 가구)</span></div></div>
+                </div>
+                <div class="market-item" style="background: #F2F7FF;">
+                    <div class="icon-box" style="background: white; color: var(--toss-blue);"><i class="fa-solid fa-chart-area"></i></div>
+                    <div><div style="font-size: 14px; font-weight: 700; color: var(--toss-blue);">SAM (Domestic)</div><div style="font-size: 16px; color: var(--grey-800); font-weight: 600;">디지털 소외 계층 <span style="color: var(--grey-500); font-weight: 400;">(700만 명)</span></div></div>
+                </div>
+                <div class="market-item" style="background: #F9FAFB;">
+                    <div class="icon-box" style="background: white; color: var(--grey-600);"><i class="fa-solid fa-globe"></i></div>
+                    <div><div style="font-size: 14px; font-weight: 700; color: var(--grey-600);">TAM (Global)</div><div style="font-size: 16px; color: var(--grey-800); font-weight: 600;">글로벌 헬스케어 <span style="color: var(--grey-500); font-weight: 400;">(10억 명)</span></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .bar-body { width: 100%; height: 0; border-radius: 12px 12px 0 0; opacity: 0.5; }
+        .bubble-label { padding: 6px 12px; border-radius: 8px; font-weight: 800; font-size: 16px; margin-bottom: 12px; position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.1); opacity: 0; transform: scale(0.8) translateY(10px); }
+        .arrow-down { position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 6px solid; }
+        .bar-title { margin-top: 16px; font-weight: 700; font-size: 16px; opacity: 0; }
+        .right-content { opacity: 0; transform: translateX(20px); }
+
+        @keyframes grow-up { to { height: var(--h); opacity: 1; } }
+        @keyframes pop-in { to { opacity: 1; transform: scale(1) translateY(0); } }
+        @keyframes fade-in { to { opacity: 1; } }
+        @keyframes slide-left-fade { to { opacity: 1; transform: translateX(0); } }
+
+        /* [속도 개선] 딜레이를 대폭 줄임 (총 1초 내 완료) */
+        
+        /* 1. SOM (Green) : 0.1s 시작 */
+        .slide.active .som .bar-body { animation: grow-up 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; animation-delay: 0.1s; }
+        .slide.active .som .bubble-label { animation: pop-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; animation-delay: 0.4s; }
+        .slide.active .som .bar-title { animation: fade-in 0.3s forwards; animation-delay: 0.4s; }
+
+        /* 2. SAM (Blue) : 0.3s 시작 (거의 바로) */
+        .slide.active .sam .bar-body { animation: grow-up 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; animation-delay: 0.3s; }
+        .slide.active .sam .bubble-label { animation: pop-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; animation-delay: 0.6s; }
+        .slide.active .sam .bar-title { animation: fade-in 0.3s forwards; animation-delay: 0.6s; }
+
+        /* 3. TAM (Grey) : 0.5s 시작 */
+        .slide.active .tam .bar-body { animation: grow-up 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; animation-delay: 0.5s; }
+        .slide.active .tam .bubble-label { animation: pop-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; animation-delay: 0.8s; }
+        .slide.active .tam .bar-title { animation: fade-in 0.3s forwards; animation-delay: 0.8s; }
+
+        /* 4. Right Content : 0.6s 시작 (그래프와 동시에 뜸) */
+        .slide.active .right-content { animation: slide-left-fade 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; animation-delay: 0.6s; }
+
+        .market-item { display: flex; align-items: center; padding: 16px; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
+        .icon-box { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-right: 16px; }
+    </style>
+</div>
+
+
+<div class="slide" style="background: white; padding: 60px 80px;">
+    
+    <div class="reveal d-1" style="text-align: center; margin-bottom: 50px;">
+        <div class="tag" style="background: var(--grey-100); color: var(--grey-700);">COMPETITIVE EDGE</div>
+        <h2 style="font-size: 40px; font-weight: 800; margin-top: 16px; color: var(--grey-900);">
+            기존 솔루션은 <span style="color: var(--toss-blue);">2%</span>가 부족합니다.
+        </h2>
+        <p style="font-size: 18px; color: var(--grey-600); margin-top: 12px;">
+            경계선 지능 부모에게는 '쉬운 사용성'과 '정확한 맥락'이 필수입니다.
+        </p>
+    </div>
+
+    <div class="reveal d-2" style="width: 100%; border-radius: 24px; overflow: hidden; border: 1px solid var(--grey-100); box-shadow: 0 20px 40px rgba(0,0,0,0.03);">
+        
+        <div style="display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr 1.3fr; background: var(--grey-50); border-bottom: 1px solid var(--grey-100);">
+            <div style="padding: 24px; font-weight: 700; color: var(--grey-500); font-size: 14px;">비교 기준</div>
+            <div class="header-col">기존 육아앱</div>
+            <div class="header-col">공공 돌봄</div>
+            <div class="header-col">범용 AI 기기</div>
+            <div class="header-col" style="background: var(--toss-blue-light); color: var(--toss-blue); font-weight: 900;">V.O.M</div>
+        </div>
+
+        <div class="table-row">
+            <div class="row-title">
+                <strong>UI 접근성</strong>
+                <span>문해력/인지력 요구도</span>
+            </div>
+            <div class="cell">❌<br><span>복잡한 텍스트</span></div>
+            <div class="cell">🟢<br><span>대면 설명</span></div>
+            <div class="cell">🔺<br><span>언어 장벽</span></div>
+            <div class="cell highlight">🔵<br><strong>NFC 태깅 (No-Text)</strong></div>
+        </div>
+
+        <div class="table-row">
+            <div class="row-title">
+                <strong>24/7 가용성</strong>
+                <span>야간/응급시 대응</span>
+            </div>
+            <div class="cell">🟢<br><span>상시 접속</span></div>
+            <div class="cell">❌<br><span>야간/휴일 부재</span></div>
+            <div class="cell">🟢<br><span>상시 대기</span></div>
+            <div class="cell highlight">🔵<br><strong>현장 데이터 보존</strong></div>
+        </div>
+
+        <div class="table-row" style="border-bottom: none;">
+            <div class="row-title">
+                <strong>물리적 맥락</strong>
+                <span>사물 인식 및 맞춤 정보</span>
+            </div>
+            <div class="cell">❌<br><span>직접 입력 필요</span></div>
+            <div class="cell">🟢<br><span>상황 직접 확인</span></div>
+            <div class="cell">❌<br><span>사물 인식 불가</span></div>
+            <div class="cell highlight">🔵<br><strong>핵심 정보 큐레이션</strong></div>
+        </div>
+    </div>
+
+    <style>
+        .header-col { padding: 24px; text-align: center; font-weight: 800; color: var(--grey-800); font-size: 15px; display: flex; align-items: center; justify-content: center; }
+        .table-row { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr 1.3fr; border-bottom: 1px solid var(--grey-50); align-items: stretch; }
+        .row-title { padding: 24px; display: flex; flex-direction: column; justify-content: center; }
+        .row-title strong { font-size: 16px; color: var(--grey-900); }
+        .row-title span { font-size: 13px; color: var(--grey-500); margin-top: 4px; }
+        .cell { padding: 24px; text-align: center; font-size: 20px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; }
+        .cell span { font-size: 13px; color: var(--grey-500); line-height: 1.4; font-weight: 500; }
+        .cell.highlight { background: rgba(49, 130, 246, 0.03); color: var(--toss-blue); border-left: 1px solid rgba(49, 130, 246, 0.1); border-right: 1px solid rgba(49, 130, 246, 0.1); }
+        .cell.highlight strong { font-size: 14px; color: var(--toss-blue); font-weight: 800; line-height: 1.4; }
+    </style>
+</div>
+
+<div class="slide" style="background: white; padding: 40px 50px; display: flex; flex-direction: column;">
+    
+    <div style="flex-shrink: 0; display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 30px;">
+        <div>
+            <div class="tag reveal" style="background: var(--grey-100); color: var(--grey-700); margin-bottom: 12px;">COMPETITIVE LANDSCAPE</div>
+            <h2 class="reveal d-1" style="font-size: 40px; font-weight: 800; margin: 0; color: var(--grey-900);">
+                기존 대안들은 <span style="color: var(--toss-blue);">한계</span>가 명확합니다.
+            </h2>
+        </div>
+        <div class="reveal d-1" style="display: flex; gap: 16px;">
+            <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--grey-600); font-weight: 600;">
+                <div style="width: 10px; height: 10px; background: var(--grey-300); border-radius: 50%;"></div> 기존 방식
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--toss-blue); font-weight: 700;">
+                <div style="width: 10px; height: 10px; background: var(--toss-blue); border-radius: 50%; box-shadow: 0 0 0 2px var(--toss-blue-light);"></div> V.O.M Solution
+            </div>
+        </div>
+    </div>
+
+    <div class="reveal d-2" style="flex-grow: 1; position: relative; width: 100%; background: #F9FAFB; border-radius: 24px; border: 1px solid var(--grey-200); box-shadow: inset 0 0 60px rgba(0,0,0,0.02); overflow: hidden;">
+        
+        <div style="position: absolute; inset: 0; background-image: radial-gradient(#E5E8EB 1px, transparent 1px); background-size: 40px 40px; opacity: 0.5;"></div>
+        <div style="position: absolute; top: 0; right: 0; width: 55%; height: 55%; background: radial-gradient(circle at top right, rgba(49, 130, 246, 0.1), transparent 70%); border-bottom-left-radius: 100%;"></div>
+
+        <div style="position: absolute; top: 50%; left: 40px; right: 40px; height: 1px; background: var(--grey-300);"></div>
+        <div style="position: absolute; left: 50%; top: 40px; bottom: 40px; width: 1px; background: var(--grey-300);"></div>
+
+        <div class="axis-label top" style="top: 25px;">High Continuity (지속적)</div>
+        <div class="axis-label bottom" style="bottom: 25px;">Intermittent (일시적)</div>
+        <div class="axis-label right" style="right: 25px; top: 50%;">High Accessibility (쉬움)</div>
+        <div class="axis-label left" style="left: 25px; top: 50%;">Difficult (어려움)</div>
+
+        <div class="dot-item pop-in d-2" style="bottom: 18%; left: 18%;">
+            <div class="dot-icon grey"><i class="fa-solid fa-file-lines"></i></div>
+            <div class="dot-text">
+                <div class="name">종이 안내문</div>
+                <div class="pain">분실/훼손 위험</div>
+            </div>
+        </div>
+
+        <div class="dot-item pop-in d-2" style="top: 25%; left: 22%;">
+            <div class="dot-icon grey"><i class="fa-solid fa-mobile-screen"></i></div>
+            <div class="dot-text">
+                <div class="name">기존 앱</div>
+                <div class="pain">복잡한 UI/UX</div>
+            </div>
+        </div>
+
+        <div class="dot-item pop-in d-3" style="bottom: 25%; right: 28%;">
+            <div class="dot-icon grey"><i class="fa-solid fa-user-clock"></i></div>
+            <div class="dot-text">
+                <div class="name">방문 지도사</div>
+                <div class="pain">비용/시간 부담</div>
+            </div>
+        </div>
+
+        <div class="dot-item pop-in d-3" style="top: 52%; left: 45%;">
+            <div class="dot-icon grey small"><i class="fa-solid fa-phone"></i></div>
+            <div class="dot-text">
+                <div class="name">전화 상담</div>
+            </div>
+        </div>
+
+        <div class="dot-item hero pop-in d-4" style="top: 20%; right: 18%;">
+            <div class="pulse-ring"></div>
+            
+            <div class="dot-icon blue">
+                V.O.M
+            </div>
+            <div class="dot-text">
+                <div class="badge">The Solution</div>
+                <div class="name large">쉽고 지속적인 케어</div>
+                <div class="desc">자동화된 데이터 관리</div>
+            </div>
+        </div>
+
+    </div>
+
+    <style>
+        /* Axis Labels */
+        .axis-label {
+            position: absolute; background: white; padding: 6px 14px; border-radius: 20px;
+            font-size: 13px; font-weight: 700; color: var(--grey-600);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid var(--grey-200);
+            transform: translate(-50%, -50%); white-space: nowrap; z-index: 1;
+        }
+        .axis-label.top, .axis-label.bottom { left: 50%; }
+        .axis-label.right { transform: translateY(-50%); color: var(--toss-blue); border-color: var(--toss-blue-light); }
+        .axis-label.left { transform: translateY(-50%); }
+
+        /* Dot Items */
+        .dot-item { position: absolute; display: flex; align-items: center; gap: 12px; transform: translate(-50%, 50%); z-index: 5; }
+        
+        .dot-icon {
+            width: 56px; height: 56px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            transition: transform 0.2s;
+        }
+        .dot-icon.grey { background: white; color: var(--grey-500); border: 1px solid var(--grey-200); }
+        .dot-icon.small { width: 40px; height: 40px; font-size: 18px; }
+        .dot-item:hover .dot-icon { transform: scale(1.1); }
+
+        .dot-text { text-align: left; }
+        .dot-text .name { font-size: 16px; font-weight: 800; color: var(--grey-800); }
+        .dot-text .pain { font-size: 13px; color: var(--grey-500); margin-top: 2px; }
+
+        /* Hero Style (V.O.M) */
+        .dot-item.hero { gap: 16px; z-index: 10; }
+        .dot-icon.blue {
+            width: 88px; height: 88px; background: var(--toss-blue); color: white;
+            font-size: 20px; font-weight: 900; border: 4px solid white;
+            box-shadow: 0 10px 30px rgba(49, 130, 246, 0.3);
+        }
+        .dot-text .badge {
+            display: inline-block; background: var(--toss-blue-light); color: var(--toss-blue);
+            font-size: 11px; font-weight: 800; padding: 4px 8px; border-radius: 6px; margin-bottom: 6px;
+        }
+        .dot-text .name.large { font-size: 20px; color: var(--toss-blue); }
+        .dot-text .desc { font-size: 14px; color: var(--grey-600); margin-top: 2px; }
+
+        .pulse-ring {
+            position: absolute; left: 44px; top: 50%; transform: translate(-50%, -50%);
+            width: 200px; height: 200px; background: radial-gradient(circle, rgba(49,130,246,0.15) 0%, transparent 70%);
+            animation: pulse-soft 3s infinite; z-index: -1; pointer-events: none;
+        }
+
+        @keyframes pulse-soft { 0%, 100% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.5; } 50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.8; } }
+    </style>
+</div>
+
+<div class="slide" style="background: white; padding: 40px 50px; display: flex; flex-direction: column; overflow: hidden;">
+    
+    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 400px; background: radial-gradient(ellipse at top, rgba(49, 130, 246, 0.08) 0%, transparent 70%); pointer-events: none;"></div>
+
+    <div class="reveal d-1" style="margin-bottom: 80px; position: relative; z-index: 2;">
+        <div class="tag" style="background: var(--grey-100); color: var(--grey-700); margin-bottom: 12px;">EXECUTION PLAN</div>
+        <h2 style="font-size: 40px; font-weight: 800; line-height: 1.2; margin: 0; color: var(--grey-900);">
+            Strategic <span style="color: var(--toss-blue);">Timeline</span>
+        </h2>
+        <p style="font-size: 16px; color: var(--grey-500); margin-top: 16px; line-height: 1.5; font-weight: 500;">
+            검증된 MVP 모델을 시작으로 데이터 플라이휠을 구축하고,<br>
+            2027년 글로벌 플랫폼으로 도약하기 위한 빈틈없는 실행 계획입니다.
+        </p>
+    </div>
+
+    <div style="flex-grow: 1; position: relative; display: flex; flex-direction: column; z-index: 1;">
+        
+        <div class="reveal d-1" style="position: absolute; top: 15px; left: 0; width: 100%; height: 6px; background: var(--grey-200); border-radius: 6px; z-index: 0;"></div>
+        
+        <div class="timeline-bar-fill" style="position: absolute; top: 15px; left: 0; width: 0%; height: 6px; border-radius: 6px; z-index: 1;"></div>
+
+        <div style="display: flex; justify-content: space-between; height: 100%;">
+            
+            <div class="timeline-col col-1" style="flex: 1; padding-right: 20px;">
+                <div class="anchor-group">
+                    <div class="dot blue"></div>
+                    <div class="stem blue"></div>
+                    <div class="date-badge blue">2026 상반기</div>
+                </div>
+                
+                <div class="timeline-card">
+                    <div class="phase-title">Market Entry</div>
+                    <h3 class="milestone-text">MVP 런칭 및<br>거점 확보</h3>
+                    <ul class="check-list">
+                        <li>교육 키트 1,000개 보급</li>
+                        <li>제휴 센터 50곳 확보</li>
+                        <li>MAU 5,000명 달성</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="timeline-col col-2" style="flex: 1; padding-left: 20px; padding-right: 20px;">
+                <div class="anchor-group">
+                    <div class="dot purple"></div>
+                    <div class="stem purple"></div>
+                    <div class="date-badge purple">2026 하반기</div>
+                </div>
+                
+                <div class="timeline-card">
+                    <div class="phase-title" style="color: #7353EA;">Expansion</div>
+                    <h3 class="milestone-text">데이터 파이프라인<br>고도화</h3>
+                    <ul class="check-list">
+                        <li>음성 데이터 50만 건</li>
+                        <li>AI 분석 정확도 95%</li>
+                        <li>유료 구독 모델 런칭</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="timeline-col col-3" style="flex: 1; padding-left: 20px;">
+                <div class="anchor-group">
+                    <div class="dot green"></div>
+                    <div class="stem green"></div>
+                    <div class="date-badge green">2027년 ~</div>
+                </div>
+                
+                <div class="timeline-card">
+                    <div class="phase-title" style="color: var(--toss-green);">Global Scale</div>
+                    <h3 class="milestone-text">B2B 솔루션 및<br>글로벌 진출</h3>
+                    <ul class="check-list">
+                        <li>매출 $10M 달성</li>
+                        <li>API 데이터 판매 개시</li>
+                        <li>동남아 시장 진출</li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <style>
+        /* [중요] .slide.active 가 붙었을 때만 애니메이션 시작 */
+        .timeline-bar-fill {
+            background: linear-gradient(90deg, var(--toss-blue), #7353EA, var(--toss-green));
+            box-shadow: 0 0 15px rgba(49, 130, 246, 0.4);
+            width: 0%; /* 초기 상태 */
+        }
+        .slide.active .timeline-bar-fill {
+            animation: timeline-expand 2.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+            animation-delay: 0.5s;
+        }
+
+        /* 초기 상태: 안 보임 */
+        .anchor-group, .timeline-card { opacity: 0; }
+
+        /* 애니메이션 정의 */
+        @keyframes dropIn { 0% { opacity: 0; transform: translateY(-20px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes slideUpFade { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes timeline-expand { 0% { width: 0%; } 100% { width: 100%; } }
+
+        /* 순차 실행 로직 (slide.active 하위에서만 작동) */
+        .slide.active .col-1 .anchor-group { animation: dropIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: 0.6s; }
+        .slide.active .col-1 .timeline-card { animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: 0.8s; }
+
+        .slide.active .col-2 .anchor-group { animation: dropIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: 1.2s; }
+        .slide.active .col-2 .timeline-card { animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: 1.4s; }
+
+        .slide.active .col-3 .anchor-group { animation: dropIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: 1.8s; }
+        .slide.active .col-3 .timeline-card { animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: 2.0s; }
+
+        /* 기본 스타일 (기존 유지) */
+        .timeline-col { display: flex; flex-direction: column; position: relative; }
+        .anchor-group { position: relative; height: 80px; margin-top: 6px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; }
+        .dot { width: 24px; height: 24px; border-radius: 50%; z-index: 10; border: 4px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.15); position: absolute; top: 0; }
+        .dot.blue { background: var(--toss-blue); } .dot.purple { background: #7353EA; } .dot.green { background: var(--toss-green); }
+        .stem { width: 2px; height: 100%; background: var(--grey-300); z-index: 5; margin-top: 12px; }
+        .stem.blue { background: linear-gradient(to bottom, var(--toss-blue), rgba(49,130,246,0.1)); }
+        .stem.purple { background: linear-gradient(to bottom, #7353EA, rgba(115,83,234,0.1)); }
+        .stem.green { background: linear-gradient(to bottom, var(--toss-green), rgba(51,199,89,0.1)); }
+        .date-badge { position: absolute; top: 50%; transform: translateY(-50%); font-size: 13px; font-weight: 800; padding: 4px 12px; border-radius: 20px; z-index: 8; border: 2px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .date-badge.blue { background: #E8F3FF; color: var(--toss-blue); } .date-badge.purple { background: #F3E8FF; color: #7353EA; } .date-badge.green { background: #E8F9EC; color: var(--toss-green); }
+        .timeline-card { background: white; border: 1px solid var(--grey-200); border-radius: 20px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.03); transition: transform 0.3s ease; position: relative; z-index: 5; }
+        .timeline-card:hover { transform: translateY(-5px); box-shadow: 0 15px 40px rgba(0,0,0,0.08); }
+        .phase-title { font-size: 13px; font-weight: 800; color: var(--toss-blue); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9; }
+        .milestone-text { font-size: 24px; font-weight: 800; color: var(--grey-900); line-height: 1.3; margin-bottom: 24px; letter-spacing: -0.5px; }
+        .check-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+        .check-list li { font-size: 15px; color: var(--grey-600); font-weight: 500; position: relative; padding-left: 20px; }
+        .check-list li::before { content: '\f00c'; font-family: "Font Awesome 6 Free"; font-weight: 900; position: absolute; left: 0; top: 3px; font-size: 11px; color: var(--toss-blue); }
+    </style>
+</div>
+
+
+<div class="slide" style="background: white; overflow: hidden;">
+    
+    <div style="position: absolute; inset: 0; background-image: radial-gradient(#E5E8EB 1px, transparent 1px); background-size: 24px 24px; opacity: 0.6;"></div>
+
+    <div class="grid-2" style="grid-template-columns: 0.4fr 0.6fr; gap: 40px; height: 100%; align-items: center; padding: 0 40px; position: relative; z-index: 2;">
+        
+        <div class="reveal d-1">
+            <div class="tag" style="background: var(--toss-blue-light); color: var(--toss-blue); display: inline-block; padding: 6px 16px; border-radius: 30px; font-size: 15px; font-weight: 800; letter-spacing: 0.5px; margin-bottom: 20px;">GO-TO-MARKET</div>
+            
+            <h2 style="font-size: 40px; font-weight: 800; margin-bottom: 24px; line-height: 1.3; color: var(--grey-900);">
+                '경기도 수원시'라는<br>
+                <span style="color: var(--toss-blue);">확실한 거점</span>에서.
+            </h2>
+            
+            <p style="color: var(--grey-600); font-size: 17px; line-height: 1.6; margin-bottom: 30px;">
+                120만 인구의 '수원 특례시'를 테스트베드로<br>
+                데이터 신뢰도를 확보한 후, 경기 남부 벨트를 거쳐<br>
+                전국 표준 복지 플랫폼으로 확장합니다.
+            </p>
+
+            <div style="padding-left: 16px; border-left: 2px solid var(--grey-200);">
+                <div style="font-size: 14px; color: var(--grey-700); margin-bottom: 8px;">
+                    <strong style="color: var(--grey-900);">Why Suwon?</strong>
+                </div>
+                <div style="font-size: 13px; color: var(--grey-600); line-height: 1.4;">
+                    • 전국 기초지자체 중 인구 1위 (120만)<br>
+                    • 도농 복합 및 다문화 가정 밀집 (최적의 표본)<br>
+                    • 스마트시티 인프라 최우수 도시
+                </div>
+            </div>
+        </div>
+
+        <div class="reveal d-2" style="position: relative; height: 540px; width: 100%; display: flex; justify-content: center; align-items: center;">
+            
+            <svg width="500" height="500" viewBox="0 0 500 500" style="position: absolute;">
+                
+                <g transform="translate(60, 20) scale(0.9)">
+                    <path d="M 228,25 L 245,45 L 260,42 L 275,55 L 285,65 L 295,90 L 305,100 L 325,115 L 340,120 L 350,135 L 375,155 L 392,185 L 395,200 L 380,215 L 370,225 L 385,245 L 393,270 L 388,295 L 370,320 L 360,340 L 375,365 L 378,385 L 345,400 L 335,390 L 350,425 L 355,440 L 325,465 L 290,485 L 270,492 L 245,480 L 210,475 L 180,472 L 150,465 L 130,462 L 100,450 L 85,445 L 65,425 L 50,410 L 70,390 L 80,380 L 55,360 L 35,345 L 20,325 L 18,300 L 18,240 L 22,220 L 35,195 L 50,175 L 65,155 L 85,145 L 110,130 L 135,110 L 155,95 L 175,70 L 200,50 Z" 
+                          fill="white" stroke="none" style="filter: drop-shadow(0 10px 20px rgba(0,0,0,0.1));"/>
+                </g>
+
+                <g transform="translate(60, 20) scale(0.9)">
+                    <path d="M 228,25 L 245,45 L 260,42 L 275,55 L 285,65 L 295,90 L 305,100 L 325,115 L 340,120 L 350,135 L 375,155 L 392,185 L 395,200 L 380,215 L 370,225 L 385,245 L 393,270 L 388,295 L 370,320 L 360,340 L 375,365 L 378,385 L 345,400 L 335,390 L 350,425 L 355,440 L 325,465 L 290,485 L 270,492 L 245,480 L 210,475 L 180,472 L 150,465 L 130,462 L 100,450 L 85,445 L 65,425 L 50,410 L 70,390 L 80,380 L 55,360 L 35,345 L 20,325 L 18,300 L 18,240 L 22,220 L 35,195 L 50,175 L 65,155 L 85,145 L 110,130 L 135,110 L 155,95 L 175,70 L 200,50 Z" 
+                          fill="white" stroke="#E5E8EB" stroke-width="1.5"/>
+                </g>
+
+                <circle cx="280" cy="250" r="120" 
+                        fill="rgba(49, 130, 246, 0.08)" stroke="#3182F6" stroke-width="2" stroke-dasharray="6 4" 
+                        class="overlay-ripple-1" style="mix-blend-mode: multiply;"/>
+                
+                <circle cx="280" cy="250" r="180" 
+                        fill="rgba(51, 199, 89, 0.05)" stroke="#33C759" stroke-width="2" stroke-dasharray="8 6" 
+                        class="overlay-ripple-2" style="mix-blend-mode: multiply;"/>
+                
+                <circle cx="280" cy="250" r="6" fill="#3182F6" stroke="white" stroke-width="2" style="z-index: 5;"/>
+
+            </svg>
+
+            <div class="data-panel pop-in d-2" style="top: 50%; left: 50%; transform: translate(-50%, -50%); border-color: var(--toss-blue);">
+                <div class="panel-header" style="color: var(--toss-blue);">
+                    <span class="step-idx">1</span> Testbed
+                    <span class="badge-now">NOW</span>
+                </div>
+                <div class="panel-body">
+                    <strong>Suwon Special City</strong>
+                    <span style="font-size: 12px;">4개 구 / 120만 인구</span><br>
+                    <span style="font-size: 11px; color: var(--grey-500);">데이터 표준화 모델 확립</span>
+                </div>
+            </div>
+
+            <div class="data-panel pop-in d-3" style="top: 100px; right: -10px;">
+                <div class="panel-header" style="color: var(--grey-700);">
+                    <span class="step-idx" style="background: var(--grey-500);">2</span> Expansion
+                </div>
+                <div class="panel-body">
+                    <strong>Gyeonggi Province</strong>
+                    <span style="font-size: 12px;">31개 시군 광역 연동</span><br>
+                    <span style="font-size: 11px; color: var(--grey-500);">경기 남부 반도체 벨트 중심</span>
+                </div>
+                <div class="conn-line" style="bottom: -20px; left: -20px; width: 40px; transform: rotate(45deg); border-top: 1px dashed var(--grey-400);"></div>
+            </div>
+
+            <div class="data-panel pop-in d-4" style="bottom: 80px; left: -10px; border-color: var(--toss-green-light);">
+                <div class="panel-header" style="color: var(--toss-green);">
+                    <span class="step-idx" style="background: var(--toss-green);">3</span> National
+                </div>
+                <div class="panel-body">
+                    <strong>Nationwide</strong>
+                    <span style="font-size: 12px;">226개 지자체 보급</span><br>
+                    <span style="font-size: 11px; color: var(--grey-500);">보건복지부 중앙 센터 연동</span>
+                </div>
+                <div class="conn-line" style="top: -20px; right: -20px; width: 40px; transform: rotate(-45deg); border-top: 1px dashed var(--toss-green-light);"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <style>
+        /* Panel Style */
+        .data-panel {
+            position: absolute; width: 180px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--grey-300);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+            padding: 14px; border-radius: 12px; z-index: 10;
+        }
+        .panel-header { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800; margin-bottom: 6px; }
+        .step-idx { width: 18px; height: 18px; background: var(--toss-blue); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+        .panel-body { font-size: 14px; color: var(--grey-800); line-height: 1.4; }
+        .panel-body strong { display: block; font-size: 15px; margin-bottom: 2px; }
+        .badge-now { background: #FF3B30; color: white; font-size: 9px; padding: 2px 6px; border-radius: 6px; margin-left: auto; font-weight: 700; }
+
+        /* Overlay Ripple Animation */
+        .overlay-ripple-1 { animation: ripple-overlay 3s infinite ease-out; transform-origin: 280px 250px; }
+        .overlay-ripple-2 { animation: ripple-overlay 3s infinite ease-out 0.5s; transform-origin: 280px 250px; }
+
+        @keyframes ripple-overlay {
+            0% { transform: scale(0.6); opacity: 0; }
+            30% { opacity: 1; }
+            100% { transform: scale(1.1); opacity: 0; }
+        }
+    </style>
+</div>
+
+<div class="slide" style="background: white;">
+    
+    <div style="padding: 0 20px; height: 100%; display: flex; flex-direction: column;">
+        
+        <div class="reveal d-1" style="display: flex; flex-direction: column;">
+            
+            <div class="tag" style="background: var(--toss-blue-light); color: var(--toss-blue); align-self: flex-start;">THE TEAM</div>
+            
+            <h2 style="font-size: 36px; font-weight: 800; margin-top: 20px; margin-bottom: 30px; line-height: 1.3; color: var(--grey-900);">
+                기술로 사회 문제를 해결하는<br>
+                <span style="color: var(--toss-blue);">임팩트 메이커들</span>입니다.
+            </h2>
+            
+            <p style="font-size: 17px; color: var(--grey-600); line-height: 1.6; margin-bottom: 40px; margin-top: -10px;">
+                공학적 설계 역량과 사회적 기업가 정신의 결합
+            </p>
+        </div>
+
+        <div class="grid-3" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; flex: 1; align-items: stretch; padding-bottom: 20px;">
+            
+            <div class="team-card reveal d-2">
+                <div style="display:flex; justify-content:space-between;">
+                    <div class="role-badge">CEO / PM</div>
+                </div>
+                
+                <div class="profile-header">
+                    <div class="avatar" style="background: linear-gradient(135deg, #3182F6, #1B64DA);">L</div>
+                    <div>
+                        <div class="name">이성민</div>
+                        <div class="major">경희대 사회기반시스템공학</div>
+                    </div>
+                </div>
+                <div class="divider"></div>
+                <div class="desc-area">
+                    <div class="key-sentence">"시스템 전체를 설계하고<br>팀의 방향성을 제시합니다."</div>
+                    <ul class="history-list">
+                        <li>현 경희대 창업동아리 FLIP 회장</li>
+                        <li>FLIP DEMO DAY 금상 수상</li>
+                        <li>기후위성 탄소주행 네비게이션 연구</li>
+                        <li>현 Creverse CMS 사고력 수학 강사</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="team-card reveal d-3">
+                <div class="role-badge green">CTO / Tech Lead</div>
+                
+                <div class="profile-header">
+                    <div class="avatar" style="background: linear-gradient(135deg, #33C759, #248F3F);">S</div>
+                    <div>
+                        <div class="name">송민하</div>
+                        <div class="major">경희대 환경공학</div>
+                    </div>
+                </div>
+                <div class="divider"></div>
+                <div class="desc-area">
+                    <div class="key-sentence">"데이터 모델링을 통해<br>최적의 솔루션을 도출합니다."</div>
+                    <ul class="history-list">
+                        <li>이차전지 폐수처리 공정 모델링</li>
+                        <li>디지털 트윈(Digital Twin) 구현</li>
+                        <li>데이터 기반 문제 정의 및 해결</li>
+                        <li>공정 최적화 및 시뮬레이션 설계</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="team-card reveal d-4">
+                <div class="role-badge orange">COO / Strategy</div>
+                
+                <div class="profile-header">
+                    <div class="avatar" style="background: linear-gradient(135deg, #FF9500, #CC7700);">P</div>
+                    <div>
+                        <div class="name">박수빈</div>
+                        <div class="major">경희대 국제대학</div>
+                    </div>
+                </div>
+                <div class="divider"></div>
+                <div class="desc-area">
+                    <div class="key-sentence">"사회적 가치를 비즈니스<br>언어로 번역하여 전달합니다."</div>
+                    <ul class="history-list">
+                        <li>APEC 모의 사회적기업 경진대회 2등</li>
+                        <li>WFUNA Global Youth Hackathon 3등</li>
+                        <li>UN SDGs Ideathon 퍼실리테이터</li>
+                        <li>소셜 임팩트 비즈니스 모델 고도화</li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <style>
+        /* Team Card Style */
+        .team-card {
+            background: #F9FAFB;
+            border: 1px solid var(--grey-200);
+            border-radius: 20px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .team-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            border-color: var(--toss-blue-light);
+            background: white;
+        }
+
+        .role-badge {
+            display: inline-block;
+            font-size: 11px; font-weight: 800;
+            padding: 4px 10px; border-radius: 8px;
+            margin-bottom: 16px;
+            background: #E8F3FF; color: var(--toss-blue);
+        }
+        .role-badge.green { background: #Edfbf0; color: var(--toss-green); }
+        .role-badge.orange { background: #fff4e0; color: #FF9500; }
+
+        .profile-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+        
+        .avatar {
+            width: 48px; height: 48px; border-radius: 50%;
+            color: white; font-size: 20px; font-weight: 800;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .name { font-size: 20px; font-weight: 800; color: var(--grey-900); }
+        .major { font-size: 13px; color: var(--grey-600); margin-top: 2px; }
+
+        .divider { height: 1px; background: var(--grey-200); width: 100%; margin-bottom: 20px; }
+
+        .key-sentence {
+            font-size: 15px; font-weight: 700; color: var(--grey-800);
+            line-height: 1.5; margin-bottom: 16px;
+            word-break: keep-all; height: 45px;
+        }
+
+        .history-list {
+            list-style: none; padding: 0; margin: 0; flex: 1;
+        }
+        .history-list li {
+            position: relative; padding-left: 12px;
+            font-size: 13px; color: var(--grey-600);
+            margin-bottom: 6px; line-height: 1.4; letter-spacing: -0.2px;
+        }
+        .history-list li::before {
+            content: ''; position: absolute; left: 0; top: 8px;
+            width: 4px; height: 4px; background: var(--grey-400); border-radius: 50%;
+        }
+    </style>
+</div>
+
+
+
+
+<div class="slide" style="background: white; overflow: hidden; position: relative;">
+    
+    <div class="aurora-bg"></div>
+    <div style="position: absolute; inset: 0; background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.9) 30%, rgba(255,255,255,0.6) 100%); z-index: 1;"></div>
+
+    <div style="position: relative; z-index: 3; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 0 40px;">
+        
+        <div class="reveal-up" style="margin-bottom: 48px; animation-delay: 0.1s;">
+            <h1 style="font-size: 80px; font-weight: 900; color: #191F28; letter-spacing: -3px; margin: 0;">Q&A</h1>
+            <div style="width: 40px; height: 4px; background: #3182F6; margin: 24px auto 0; border-radius: 2px;"></div>
+        </div>
+
+        <div class="reveal-up" style="margin-bottom: 80px; animation-delay: 0.3s;">
+            <p style="font-size: 24px; font-weight: 600; color: #4E5968; line-height: 1.5;">
+                궁금하신 점에 대해<br>성심껏 답변해 드리겠습니다.
+            </p>
+        </div>
+
+        <div class="reveal-up" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; width: 100%; max-width: 700px; animation-delay: 0.5s;">
+            
+            <div style="background: rgba(255, 255, 255, 0.8); padding: 24px; border-radius: 20px; border: 1px solid #E5E8EB; backdrop-filter: blur(10px); display: flex; align-items: center; gap: 20px; text-align: left;">
+                <div style="width: 48px; height: 48px; background: #E8F3FF; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #3182F6;">
+                    <i class="fa-solid fa-phone" style="font-size: 20px;"></i>
+                </div>
+                <div>
+                    <div style="font-size: 13px; color: #8B95A1; font-weight: 700; margin-bottom: 4px; letter-spacing: 0.5px;">MOBILE</div>
+                    <div style="font-size: 18px; font-weight: 800; color: #333D4B;">010-4631-9554</div>
+                </div>
+            </div>
+
+            <div style="background: rgba(255, 255, 255, 0.8); padding: 24px; border-radius: 20px; border: 1px solid #E5E8EB; backdrop-filter: blur(10px); display: flex; align-items: center; gap: 20px; text-align: left;">
+                <div style="width: 48px; height: 48px; background: #Edfbf0; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #33C759;">
+                    <i class="fa-solid fa-envelope" style="font-size: 20px;"></i>
+                </div>
+                <div>
+                    <div style="font-size: 13px; color: #8B95A1; font-weight: 700; margin-bottom: 4px; letter-spacing: 0.5px;">EMAIL</div>
+                    <div style="font-size: 18px; font-weight: 800; color: #333D4B;">chadolmin01@khu.ac.kr</div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="reveal-up" style="margin-top: 60px; animation-delay: 0.7s;">
+            <span style="font-size: 14px; font-weight: 800; color: #B0B8C1; letter-spacing: 3px;">TEAM V.O.M</span>
+        </div>
+
+    </div>
+
+    <style>
+        /* 글자 등장 애니메이션 */
+        .reveal-up {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: moveUp 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+
+        @keyframes moveUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 오로라 배경 애니메이션 */
+        .aurora-bg {
+            position: absolute; width: 140%; height: 140%; top: -20%; left: -20%;
+            background: radial-gradient(circle at 20% 80%, rgba(49, 130, 246, 0.08), transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(51, 199, 89, 0.05), transparent 50%);
+            animation: aurora-flow 20s infinite alternate ease-in-out;
+            z-index: 0;
+            filter: blur(60px);
+        }
+
+        @keyframes aurora-flow {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(40px, -40px) scale(1.1); }
+        }
+    </style>
+</div>
+
+<script>
+    // [중요] 새로고침 시 무조건 맨 위(표지)로 강제 이동 및 스크롤 복원 방지
+    if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'manual';
+    }
+    
+    // 1. Scroll Detection
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) entry.target.classList.add('active');
+        });
+    }, { threshold: 0.2 });
+    
+    const slides = document.querySelectorAll('.slide');
+    slides.forEach(slide => observer.observe(slide));
+
+    
+    // 2. Presentation Mode (Keyboard)
+    let currentSlideIndex = 0;
+
+    function scrollToSlide(index) {
+        if (index < 0 || index >= slides.length) return;
+        currentSlideIndex = index;
+        slides[currentSlideIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    // 페이지 로드 시 맨 처음으로 초기화
+    window.onload = function() {
+        window.scrollTo(0, 0);
+        currentSlideIndex = 0;
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (['ArrowDown', 'ArrowRight', 'Space', 'Enter'].includes(e.code)) {
+            e.preventDefault(); scrollToSlide(currentSlideIndex + 1);
+        } else if (['ArrowUp', 'ArrowLeft'].includes(e.code)) {
+            e.preventDefault(); scrollToSlide(currentSlideIndex - 1);
+        }
+    });
+
+    // 3. Presentation Mode (Mouse Wheel)
+    let isScrolling = false;
+    window.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        if (isScrolling) return;
+        isScrolling = true;
+        if (e.deltaY > 0) scrollToSlide(currentSlideIndex + 1);
+        else scrollToSlide(currentSlideIndex - 1);
+        setTimeout(() => { isScrolling = false; }, 800);
+    }, { passive: false });
+</script>
+
+</body>
+</html>
